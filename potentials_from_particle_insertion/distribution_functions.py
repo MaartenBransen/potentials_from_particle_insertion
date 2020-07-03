@@ -181,7 +181,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         
         counts = prob_r.sum(axis=0)
         
-        #take average of test-particle probabilities in each bin weighted by number of pair counts
+        #take average of test-particle probabilities in each bin weighted by number
+        # of pair counts
         prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
         prob_r[counts!=0] /= counts[counts!=0]
         
