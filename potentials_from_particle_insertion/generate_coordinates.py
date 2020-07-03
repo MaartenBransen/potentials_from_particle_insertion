@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.spatial import cKDTree
 
-
-def _random_coordinates_in_box(boundary,n=1):
+def _rand_coord_in_box(boundary,n=1):
     """
     generate n random coordinates uniformly distributed in the box defined by
     boundary
@@ -22,11 +21,12 @@ def _random_coordinates_in_box(boundary,n=1):
     """
     return np.random.random_sample((n,3))*(boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
 
-def _random_coordinates_at_distance(boundary,coordinates,rmin,n=1,timeout=100):
+def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
     """Random coordinate from contineous uniform distribution of box given by
-    half-open intervals in boundary (, 
-    where each coordinate is at least `rmin` away from any point in 
-    `coordinates`
+    half-open intervals in boundary, where each coordinate is at least `rmin` 
+    away from any point in `coordinates`. Coordinates are generated randomly
+    in the box, checked for proximity, and replaced if needed in a loop that 
+    times out after `timeout` iterations.
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ def _random_coordinates_at_distance(boundary,coordinates,rmin,n=1,timeout=100):
         Randomly generated coordinates which are at least rmin away from input
 
     """    
-    coord = _random_coordinates_in_box(boundary,n=n)
+    coord = _rand_coord_in_box(boundary,n=n)
     if rmin == 0:
         return coord
     
@@ -78,7 +78,7 @@ def _random_coordinates_at_distance(boundary,coordinates,rmin,n=1,timeout=100):
     
     return coord
 
-def _random_coordinates_on_sphere(npoints=1,radius=1,origin=[0,0,0]):
+def _rand_coord_on_sphere(npoints=1,radius=1,origin=[0,0,0]):
     """
     generate `npoints` random coordinates on the surface of a sphere of radius
     `radius` around the center point `origin`.
