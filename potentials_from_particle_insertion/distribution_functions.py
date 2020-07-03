@@ -27,11 +27,14 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
 
     Parameters
     ----------
-    coordinates : iterable of (numpy.array of shape n*3)
-        list of arrays of n particle coordinates, where each array is an 
-        independent set (e.g. a time step from a video). In each array, 
-        fist dimension elements must be of form `[z,y,x]`. Particles are 
-        assumed to be inside of the bounding box defined by `boundary`. 
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        but all stacks must share the same  bounding box as given by 
+        `boundary`, and all coordinates must be within this bounding box.
     pairpotential : iterable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
@@ -66,11 +69,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
 
     Returns
     -------
-    pair_correlation : TYPE
-        DESCRIPTION.
-    counter : TYPE
-        DESCRIPTION.
-
+    pair_correlation : numpy.array
+        values for the rdf / pair correlation function in each bin
+    counter : numpy.array
+        number of pair counts that contributed to the (mean) values in each bin
     """
 
     #check input
@@ -143,10 +145,11 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         
         else:
             #calculate correction factor for each testparticle for each dist bin
-            # to account for missing information around particles near boundary
+            # to account for missing information around particles near boundary.
+            #boundary is shifted for coordinate system with origin in particle
             boundarycorr = _sphere_shell_vol_fraction(
                 rvals,
-                boundary-trialparticles[:,:,np.newaxis]#shift coordinate system with origin in particle
+                boundary-trialparticles[:,:,np.newaxis]
                 )
             
             #sum pairwise energy per particle per distance bin, then correct
@@ -170,9 +173,12 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         
         #count how many pairs each particle contributes to each bin, apply
         # boundary correction for correctly weighted average
-        prob_r = np.apply_along_axis(lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
+        prob_r = np.apply_along_axis(
+            lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
+        
         if not (periodic_boundary or avoid_boundary):
             prob_r = prob_r/boundarycorr 
+        
         counts = prob_r.sum(axis=0)
         
         #take average of test-particle probabilities in each bin weighted by number of pair counts
@@ -189,31 +195,6 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     pair_correlation[counter==0] = 0
     
     return pair_correlation,counter
-
-
-
-
-def _calc_squared_dist(coordinates,trialparticle,rmax):
-    #naive implementation
-    distances = []
-    for coord in coordinates:
-        d = np.sum((coordinates-trialparticle)**2)
-        if d <= rmax**2:
-            distances.append(d)
-    return distances
-
-@nb.njit()
-def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
-    """"numba optimized loop over coordinate pairs, returns pairwise distances"""
-    #naive implementation
-    distances = []
-    for i in range(len(coordinates)):
-        d = 0
-        for j in range(3):
-            d += (coordinates[i,j]-trialparticle[j])**2
-        if d <= rmax**2:
-            distances.append(d)
-    return distances
 
 def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
                                  pairpotential_binedges=None,
@@ -270,11 +251,16 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
     
     if type(pairpotential_binedges) == type(None):
         pairpotential_binedges = rvals
+    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
     
     if interpolate:#interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,(pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2,pairpotential)
+        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
+                                         pairpotential)
     else:#get pair potential from nearest bin (round r to bincenter)
-        pot_fun = lambda dist: np.array(pairpotential)[[np.digitize(dist,pairpotential_binedges)-1]]
+        from scipy.interpolate import interp1d    
+        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
+                           kind='nearest',bounds_error=False,
+                           fill_value='extrapolate')
     
     #calculate average probability over the whole box to insert particle
     tot_prob = 0
@@ -332,96 +318,24 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
     
     return pair_correlation,counters
 
-def pair_correlation_boundary_3d(coordinates,pairpotential,rmax,dr,boundary,
-                             pairpotential_binedges=None,n_ins=1000,grid=False,
-                             interpolate=True,rmin=0,periodic_boundary=False):
-    """
-    calculate g(r) from particle insertion method using particle coordinates
-    and pairwise interaction potential u(r) (in units of kT)
+def _calc_squared_dist(coordinates,trialparticle,rmax):
+    #naive implementation, slow
+    distances = []
+    for coord in coordinates:
+        d = np.sum((coordinates-trialparticle)**2)
+        if d <= rmax**2:
+            distances.append(d)
+    return distances
 
-
-    """
-    global exp_psi,counts,distances
-    
-    #check input
-    boundary = np.array(boundary)
-    if rmax >= min(boundary[:,1]-boundary[:,0])/2:
-        raise ValueError('rmax cannot be more than half the smallest box dimension')
-    
-    rvals = np.arange(rmin,rmax+dr,dr)#bins for r / u(r)
-    rcent = rvals[:-1]+dr/2
-    nt = len(coordinates)
-    nr = len(rcent)
-    
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
-    if interpolate:#interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,kind='nearest',bounds_error=False,fill_value='extrapolate')
-    
-    #set up reduced boundary for nonperiodic or box shifted to [0,boxize] for
-    #periodic boundary conditions using scipy.cKDTree with boxsize argument
-    reduced_boundary = boundary.copy()
-    if periodic_boundary:
-        reduced_boundary[:,0] -= boundary[:,0]
-        reduced_boundary[:,1] -= boundary[:,0]
-    else:
-        reduced_boundary[:,0] += rmax
-        reduced_boundary[:,1] -= rmax
-    
-    #generate n_ins coordinates in box on an organized grid
-    if grid:
-        numsteps = n_ins**(1/3)*(reduced_boundary[:,1]-reduced_boundary[:,0])/np.mean(reduced_boundary[:,1]-reduced_boundary[:,0])
-        slices = [slice(dim[0],dim[1],1j*max([3,int(np.ceil(num))])) for dim,num in zip(reduced_boundary,numsteps)]
-        trialparticles = np.mgrid[slices].reshape(3,-1).T
-    
-    #make arrays to store values
-    counter = np.empty((nt,nr))
-    pair_correlation = np.empty((nt,nr))
-    
-    #loop over all timesteps / independent sets of coordiates
-    for i,coords in enumerate(coordinates):
-        
-        #generate new trialparticle coordinates
-        if not grid:
-            trialparticles = _random_coordinates_in_box(reduced_boundary,n=n_ins)
-        
-        #init KDTree for fast pairfinding
-        if periodic_boundary:
-            coords -= reduced_boundary[:,0]#shift box to origin
-            tree = cKDTree(coords,boxsize=reduced_boundary[:,1])
-        else:
-            tree = cKDTree(coords)
-        
-        #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=len(coords),distance_upper_bound=rmax)
-
-        #calculate sum of pairwise forces for each trialparticle
-        mask = ~np.isfinite(distances)#cKDTree pads rows with np.inf to get correct length
-        exp_psi = np.exp(-np.sum(np.ma.masked_array(pot_fun(distances),mask),axis=1))
-        distances = np.ma.masked_array(distances,mask)
-        
-        #calculate probabilities
-        prob_tot = np.mean(exp_psi)
-        prob_r = np.apply_along_axis(lambda row: np.histogram(row.data[~row.mask],bins=rvals)[0],1,distances)
-        counts = prob_r.sum(axis=0)
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
-        
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
-    pair_correlation[counter==0] = 0
-    
-    return pair_correlation,counter
-
-#@nb.njit()
+@nb.njit()
+def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
+    """"numba optimized loop over coordinate pairs, returns pairwise distances"""
+    #naive implementation
+    distances = []
+    for i in range(len(coordinates)):
+        d = 0
+        for j in range(3):
+            d += (coordinates[i,j]-trialparticle[j])**2
+        if d <= rmax**2:
+            distances.append(d)
+    return distances
