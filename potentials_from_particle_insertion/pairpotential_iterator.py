@@ -14,8 +14,9 @@ from .distribution_functions import rdf_insertion_binned_3d
 
 #defs
 def run_iteration(coordinates,pair_correlation_func,boundary,
-                  initial_guess=None,rmin=0,rmax=20,dr=0.5,convergence_tol=0.1,
-                  max_iterations=100,zero_clip=1e-10,regulate=False,**kwargs):
+                  initial_guess=None,rmin=0,rmax=20,dr=0.5,
+                  convergence_tol=1e-5,max_iterations=100,zero_clip=1e-20,
+                  regulate=False,**kwargs):
     """
     Run the algorithm to solve for the pairwise potential that most accurately
     reproduces the radial distribution function using test-particle insertion
@@ -48,10 +49,13 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         Stepsize or bin width in interparticle distance r. The default is 0.5.
     convergence_tol : float, optional
         target value for χ², if it dips below this value the iteration is 
-        considered to be converged and ended. The default is 0.1.
+        considered to be converged and ended. The default is 10**-5.
     max_iterations : int, optional
         Maximum number of iterations after which the algorithm is ended. The
         default is 100.
+    zero_clip : float, optional
+        values below the value of zero-clip are set to this value to avoid
+        devision by zero errors. The default is 10**-20.
     regulate : bool, optional
         if True, use regularization to more gently nudge towards the input g(r)
         at the cost of slower convergence. Experimental option. The default is

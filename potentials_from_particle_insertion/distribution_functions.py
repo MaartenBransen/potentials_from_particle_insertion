@@ -397,39 +397,45 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     if coordinates.ndim == 2:
         coordinates = coordinates[None,:,:]
     
-    #set other defaults
+    #set default step size
     if not dr:
         dr = (rmax-rmin)/20
+    
+    #set default boundary as min and max values in dataset
     if not boundary:
         boundary = np.array([
                 [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
                 [coordinates[:,:,1].min(),coordinates[:,:,1].max()],
                 [coordinates[:,:,2].min(),coordinates[:,:,2].max()]
             ])
+    else:
+        boundary = np.array(boundary)
+    
+    #set density to mean number density in dataset
     if not density:
         vol = np.product(boundary[:,1]-boundary[:,0])
         density = np.mean([len(coords)/vol for coords in coordinates])
     
-    #shift box corner to origin for periodic boundary cKDTree
+    #no edge handling needed with periodic boundaries
     if periodic_boundary:
         handle_edge = False
-        coordinates -= boundary[:,1]-boundary[:,0]
-        boundary[:,1] -= boundary[:,0]
     
     #loop over all sets of coordinates
     bincounts = []
     for coords in coordinates:
         
         #set up KDTree for fast neighbour finding
+        #shift box boundary corner to origin for periodic KDTree
         if periodic_boundary:
-            tree = cKDTree(coords,boxsize=boundary[:,1])
+            tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
         else:
             tree = cKDTree(coords)
         
         #query tree for any neighbours up to rmax
         dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
         
-        #remove padded (infinite) values and anythin below rmin
+        #remove pairs with self, padded (infinite) values and anythin below rmin
+        dist = dist[:,1:]
         mask = np.isfinite(dist) & (dist>=rmin)
         
         #when dealing with edges, histogram the distances per reference particle
