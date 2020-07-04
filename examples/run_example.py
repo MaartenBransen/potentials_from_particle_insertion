@@ -57,8 +57,8 @@ files = glob('*.dat')
 
 #settings
 rmin = 2
-rmax = 25
-dr = 0.2
+rmax = 20
+dr = 0.25
 
 #load data from files
 coords = []
