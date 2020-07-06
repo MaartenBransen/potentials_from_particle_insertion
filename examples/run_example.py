@@ -1,6 +1,5 @@
 #imports
 
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from glob import glob
@@ -57,7 +56,7 @@ files = glob('*.dat')[::]
 
 #settings
 rmin = 1
-rmax = 5
+rmax = 20
 dr = 0.2
 
 #load data from files
@@ -74,7 +73,7 @@ binedges,binvals = rdf_dist_hist_3d(
     rmax=rmax,
     dr=dr,
     boundary=boundary,
-    periodic_boundary=True
+    periodic_boundary=False
 )
 
 bincent = (binedges[1:]+binedges[:-1])/2
@@ -93,9 +92,9 @@ error,potential,rdf,counts = run_iteration(
     rmin=rmin,
     rmax=rmax,
     dr=dr,
-    max_iterations=10,
+    max_iterations=20,
     convergence_tol=1e-5,
-    n_ins=500,
+    n_ins=1000,
     regulate=False,
     periodic_boundary=True
 )
