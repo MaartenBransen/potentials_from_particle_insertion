@@ -19,7 +19,8 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
                   regulate=False,**kwargs):
     """
     Run the algorithm to solve for the pairwise potential that most accurately
-    reproduces the radial distribution function using test-particle insertion
+    reproduces the radial distribution function using test-particle insertion,
+    as described in ref. [1]. 
 
     Parameters
     ----------
@@ -55,11 +56,11 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         default is 100.
     zero_clip : float, optional
         values below the value of zero-clip are set to this value to avoid
-        devision by zero errors. The default is 10**-20.
+        devision by zero errors. The default is `1e-20`.
     regulate : bool, optional
         if True, use regularization to more gently nudge towards the input g(r)
         at the cost of slower convergence. Experimental option. The default is
-        False.
+        `False`.
     **kwargs : key=value
         Additional keyword arguments are passed on to `rdf_insertion_binned_3d`
 
@@ -73,11 +74,17 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
     paircorrelation : list of list of float
         the values for the pair correlation function from test-particle
         insertion for each iteration
-
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
     See also
     --------
-    `rdf_insertion_binned_3d`
-
+    rdf_insertion_binned_3d : routine for g(r) from test-particle insertion
     """
     
     #create values for bin edges and centres of r
