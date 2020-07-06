@@ -53,12 +53,12 @@ def dumpreader_pandas(filename,scaled_box=False,periodic_boundary=False):
     return df,bb,t
 
 #%% run
-files = glob('*.dat')
+files = glob('*.dat')[::]
 
 #settings
-rmin = 2
-rmax = 20
-dr = 0.25
+rmin = 1
+rmax = 5
+dr = 0.1
 
 #load data from files
 coords = []
@@ -73,7 +73,8 @@ binedges,binvals = rdf_dist_hist_3d(
     rmin=rmin,
     rmax=rmax,
     dr=dr,
-    boundary=boundary
+    boundary=boundary,
+    periodic_boundary=True
 )
 
 bincent = (binedges[1:]+binedges[:-1])/2
@@ -92,9 +93,11 @@ error,potential,rdf,counts = run_iteration(
     rmin=rmin,
     rmax=rmax,
     dr=dr,
-    max_iterations=20,
+    max_iterations=10,
     convergence_tol=1e-5,
-    regulate=True
+    n_ins=500,
+    regulate=False,
+    periodic_boundary=True
 )
 
 #add plot of final iteration

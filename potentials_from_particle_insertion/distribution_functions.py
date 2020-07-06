@@ -141,7 +141,11 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         #calculate total potential energy of insertion (psi) for each testparticle
         #(row) by summing each pairwise potential energy u(r)
         if periodic_boundary or avoid_boundary:
-            exp_psi = np.exp(-np.sum(pot_fun(distances)[mask],axis=1))
+            exp_psi = np.apply_along_axis(
+                lambda row: np.exp(-np.sum(pot_fun(row.data[row.mask]))),
+                1,
+                distances
+            )
         
         else:
             #calculate correction factor for each testparticle for each dist bin
@@ -155,7 +159,6 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
             #sum pairwise energy per particle per distance bin, then correct
             # each bin for missing volume, then sum and convert to probability 
             # e^(-psi)
-            distances = np.ma.masked_array(distances,mask)
             exp_psi = np.apply_along_axis(
                 lambda row: np.histogram(
                     row.data[row.mask],
