@@ -426,11 +426,10 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         default is 10.
     dr : float, optional
         bin width for the pairwise distance bins. The default is (rmax-rmin)/20
-    boundary : array-like of form `((zmin,zmax),(ymin,ymax),(xmin,xmax))`, 
-    optional
-        positions of the walls that define the bounding box of the coordinates.
-        The default is the min and max values in the dataset along each 
-        dimension.
+    boundary : array-like, optional
+        positions of the walls that define the bounding box of the coordinates,
+        given as  `((zmin,zmax),(ymin,ymax),(xmin,xmax))`. The default is the 
+        min and max values in the dataset along each dimension.
     density : float, optional
         number density of particles in the box to use for normalizing the 
         values. The default is the average density based on `coordinates` and

@@ -1,6 +1,5 @@
 """
-Set of functions for determining the missing volume of a spherical shell which
-falls partially outside of a cuboidal boundary.
+Iterator to solve for pairwise potential from a set of coordinates
 
 Maarten Bransen, 2020
 m.bransen@uu.nl
@@ -50,7 +49,7 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         Stepsize or bin width in interparticle distance r. The default is 0.5.
     convergence_tol : float, optional
         target value for χ², if it dips below this value the iteration is 
-        considered to be converged and ended. The default is 10**-5.
+        considered to be converged and ended. The default is `1e-5`.
     max_iterations : int, optional
         Maximum number of iterations after which the algorithm is ended. The
         default is 100.
