@@ -14,7 +14,7 @@ from scipy.spatial import cKDTree
 #internal imports
 from .generate_coordinates import _rand_coord_in_box,\
     _rand_coord_at_dist,_rand_coord_on_sphere
-from .geometry import _sphere_shell_vol_fraction
+from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic
 
 #defs
 def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
@@ -24,6 +24,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     """Calculate g(r) from insertion of test-particles into sets of existing
     coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
+    
+    Implementation partly based on ref. [1] but with novel corrections for 
+    edge effects based on analytical formulas from refs. [2] and [3] for 
+    periodic and nonperiodic boundary conditions respectively.
 
     Parameters
     ----------
@@ -73,12 +77,55 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         values for the rdf / pair correlation function in each bin
     counter : numpy.array
         number of pair counts that contributed to the (mean) values in each bin
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
+    [2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    periodic boundary conditions.
+    https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
+    
+    [3] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
+    Distribution Function from Particle Positions: An Advanced Analytic 
+    Approach. Analytical Chemistry, 90(23), 13909–13914. 
+    https://doi.org/10.1021/acs.analchem.8b03157
     """
 
-    #check input
+    #check if rmax input and boundary are feasible for avoiding boundary
     boundary = np.array(boundary)
     if avoid_boundary and rmax >= min(boundary[:,1]-boundary[:,0])/2:
-        raise ValueError('rmax cannot be more than half the smallest box dimension')
+        raise ValueError(
+            'rmax cannot be more than half the smallest box dimension when '+
+            'avoid_boundary=True, use rmax < {:}'.format(min(boundary[:,1]-boundary[:,0])/2)
+        )
+    
+    #check rmax and boundary for edge-handling in periodic boundary conditions
+    elif periodic_boundary:
+        if min(boundary[:,1]-boundary[:,0])==max(boundary[:,1]-boundary[:,0]):
+            boxlen = boundary[0,1]-boundary[0,0]
+            if rmax > boxlen*np.sqrt(3)/2:
+                raise ValueError(
+                    'rmax cannot be more than sqrt(3)/2 times the size of a '+
+                    'cubic bounding box when periodic_boundary=True, use '+
+                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(3)/2)
+                )
+        elif rmax > min(boundary[:,1]-boundary[:,0]):
+            raise NotImplementedError(
+                'rmax larger than half the smallest box dimension when '+
+                'periodic_boundary=True is only implemented for cubic boundaries'
+            )
+    
+    #check rmax and boundary for edge handling without periodic boundaries
+    else:
+        if rmax > np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)):
+            raise ValueError(
+                'rmax cannot be larger than the largest diagonal in boundary,'+
+                ' use rmax < {:}'.format(np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)))
+            )
     
     #create bin edges and bin centres for r
     rvals = np.arange(rmin,rmax+dr,dr)
@@ -101,6 +148,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                            kind='nearest',bounds_error=False,
                            fill_value='extrapolate')
     
+    #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
         reduced_boundary = boundary.copy()
         reduced_boundary[:,0] += rmax
@@ -140,22 +188,30 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         
         #calculate total potential energy of insertion (psi) for each testparticle
         #(row) by summing each pairwise potential energy u(r)
-        if periodic_boundary or avoid_boundary:
+        if avoid_boundary:
             exp_psi = np.apply_along_axis(
                 lambda row: np.exp(-np.sum(pot_fun(row.data[row.mask]))),
                 1,
                 distances
             )
-        
         else:
-            #calculate correction factor for each testparticle for each dist bin
-            # to account for missing information around particles near boundary.
-            #boundary is shifted for coordinate system with origin in particle
-            boundarycorr = _sphere_shell_vol_fraction(
-                rvals,
-                boundary-trialparticles[:,:,np.newaxis]
+            if periodic_boundary:
+                #calculate correction factor for each distance bin to account 
+                # for missing information
+                boundarycorr = _sphere_shell_vol_frac_periodic(
+                    rvals,
+                    min(boundary[:,1]-boundary[:,0])
+                )[np.newaxis,:]
+                
+            else:
+                #calculate correction factor for each testparticle for each dist bin
+                # to account for missing information around particles near boundary.
+                #boundary is shifted for coordinate system with origin in particle
+                boundarycorr = _sphere_shell_vol_fraction(
+                    rvals,
+                    boundary-trialparticles[:,:,np.newaxis]
                 )
-            
+                
             #sum pairwise energy per particle per distance bin, then correct
             # each bin for missing volume, then sum and convert to probability 
             # e^(-psi)
@@ -167,8 +223,9 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                     )[0],
                 1,
                 distances
-                )
+            )
             
+            #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
         #calculate average probability of all testparticles
@@ -204,8 +261,7 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
                                  pairpotential_binedges=None,
                                  gen_prob_reps=1000,shell_prob_reps=10,
                                  interpolate=True,use_numba=True):
-    """
-    calculate g(r) from particle insertion method using particle coordinates
+    """calculate g(r) from particle insertion method using particle coordinates
     and pairwise interaction potential u(r) (in units of kT). Inserts test-
     particles at a specific r for every real particle
 
@@ -349,7 +405,8 @@ def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True):
     """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 3D coordinate sets. Provided for convenience.
+    set of 3D coordinate sets. Provided for convenience. Edge correction based
+    on refs [1] and [2].
 
     Parameters
     ----------
@@ -390,6 +447,17 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         bin-edges of the radial distribution function.
     bincounts : numpy.array
         values for the bins of the radial distribution function
+    
+    References
+    ----------
+    [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    periodic boundary conditions.
+    https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
+    
+    [2] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
+    Distribution Function from Particle Positions: An Advanced Analytic 
+    Approach. Analytical Chemistry, 90(23), 13909–13914. 
+    https://doi.org/10.1021/acs.analchem.8b03157
     """
     
     #create bins
@@ -414,14 +482,34 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     else:
         boundary = np.array(boundary)
     
+    #check rmax and boundary for edge-handling in periodic boundary conditions
+    if periodic_boundary:
+        if min(boundary[:,1]-boundary[:,0])==max(boundary[:,1]-boundary[:,0]):
+            boxlen = boundary[0,1]-boundary[0,0]
+            if rmax > boxlen*np.sqrt(3)/2:
+                raise ValueError(
+                    'rmax cannot be more than sqrt(3)/2 times the size of a '+
+                    'cubic bounding box when periodic_boundary=True, use '+
+                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(3)/2)
+                )
+        elif rmax > min(boundary[:,1]-boundary[:,0]):
+            raise NotImplementedError(
+                'rmax larger than half the smallest box dimension when '+
+                'periodic_boundary=True is only implemented for cubic boundaries'
+            )
+    
+    #check rmax and boundary for edge handling without periodic boundaries
+    else:
+        if rmax > np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)):
+            raise ValueError(
+                'rmax cannot be larger than the largest diagonal in boundary'
+            )
+    
     #set density to mean number density in dataset
     if not density:
         vol = np.product(boundary[:,1]-boundary[:,0])
         density = np.mean([len(coords)/vol for coords in coordinates])
     
-    #no edge handling needed with periodic boundaries
-    if periodic_boundary:
-        handle_edge = False
     
     #loop over all sets of coordinates
     bincounts = []
@@ -444,17 +532,25 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         #when dealing with edges, histogram the distances per reference particle
         #and apply correction factor for missing volume
         if handle_edge:
-            dist = np.ma.masked_array(dist,mask)
-            counts = np.apply_along_axis(
-                lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
-                1,
-                dist
+            if periodic_boundary:
+                boundarycorr = _sphere_shell_vol_frac_periodic(
+                    rvals,
+                    min(boundary[:,1]-boundary[:,0])
                 )
-            boundarycorr=_sphere_shell_vol_fraction(
-                rvals,
-                boundary-coords[:,:,np.newaxis]
-                )
-            counts = np.sum(counts/boundarycorr,axis=0)
+                counts = np.histogram(dist[mask],bins=rvals)/boundarycorr
+
+            else:
+                dist = np.ma.masked_array(dist,mask)
+                counts = np.apply_along_axis(
+                    lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
+                    1,
+                    dist
+                    )
+                boundarycorr=_sphere_shell_vol_fraction(
+                    rvals,
+                    boundary-coords[:,:,np.newaxis]
+                    )
+                counts = np.sum(counts/boundarycorr,axis=0)
         
         #otherwise just histogram as a 1d list of distances
         else:

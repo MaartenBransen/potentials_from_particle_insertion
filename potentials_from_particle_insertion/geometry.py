@@ -158,3 +158,61 @@ def _sphere_shell_vol_fraction_nb(radii,boundary):
     tot_shell = 4/3*np.pi * (radii[1:]**3 - radii[:-1]**3)
     
     return part_shell / tot_shell
+
+def _sphere_shell_vol_frac_periodic(r,boxsize):
+    """returns effective volume of each shell defined by the intervals between
+    the radii in r, under periodic boundary conditions in a cubic box with 
+    edge length boxsize. Effective volume means the volume to which no shorter
+    path exists through the periodic boundaries than the r under consideration.
+    
+    Analytical formulas taken from ref. [1]
+
+    Parameters
+    ----------
+    r : numpy.array of float
+        list of bin edges defining the shells where each interval between 
+        values in r is treated as shell.
+    boxsize : float
+        edge length of the cubic box.
+
+    Returns
+    -------
+    numpy.array of float
+        Effective volume for each interval r -> r+dr in r. Values beyond 
+        sqrt(3)/2 boxsize are padded with numpy.nan values.
+    
+    References
+    ----------
+    [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    periodic boundary conditions.
+    https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
+
+
+    """
+    #init volume list, scale r to boxsize
+    vol = np.zeros(len(r))
+    r = r/boxsize
+    
+    #up to half boxlen, normal sphere vol
+    mask = r <= 1/2
+    vol[mask] = 4/3*np.pi * r[mask]**3
+    
+    #between boxlen/2 and sqrt(2)/2 boxlen
+    mask = (1/2 < r) & (r <= np.sqrt(2)/2)
+    vol[mask] = -np.pi/12 * (3 - 36*r[mask]**2 + 32*r[mask]**3)
+    
+    #between sqrt(2)/2 boxlen and sqrt(3)/2 boxlen
+    mask = (np.sqrt(2)/2 < r) & (r <= np.sqrt(3)/2)
+    vol[mask] = -np.pi/4 + 3*np.pi*r[mask]**2 + np.sqrt(4*r[mask]**2 - 2) \
+        + (1 - 12*r[mask]**2) * np.arctan(np.sqrt(4*r[mask]**2 - 2)) \
+        + 2/3 * r[mask]**2 * 8*r[mask] *np.arctan(
+            2*r[mask]*(4*r[mask]**2 - 3) / (np.sqrt(4*r[mask]**2 - 2)*(4*r[mask]**2 + 1))
+            )
+    
+    #beyond sqrt(3)/2 boxlen there is no useful info
+    vol[np.sqrt(3)/2 < r] = np.nan
+    
+    part = vol[1:] - vol[:-1]
+    full = 4/3*np.pi*(r[1:]**3 - r[:-1]**3)
+    
+    return part/full
