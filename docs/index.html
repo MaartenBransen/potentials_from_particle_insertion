@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.2" />
+<title>potentials_from_particle_insertion API documentation</title>
+<meta name="description" content="Maarten Bransen, 2020
+m.bransen@uu.nl" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>potentials_from_particle_insertion</code></h1>
+</header>
+<section id="section-intro">
+<p>Maarten Bransen, 2020
+m.bransen@uu.nl</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="potentials_from_particle_insertion.rdf_dist_hist_3d"><code class="name flex">
+<span>def <span class="ident">rdf_dist_hist_3d</span></span>(<span>coordinates, rmin=0, rmax=10, dr=None, boundary=None, density=None, periodic_boundary=False, handle_edge=True)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>calculates g(r) via a 'conventional' distance histogram method for a
+set of 3D coordinate sets. Provided for convenience. Edge correction based
+on refs [1] and [2].</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>numpy.array</code> or <code>list</code>-<code>like</code> of <code>numpy.array</code></dt>
+<dd>list of sets of coordinates, where each item along the 0th dimension is
+a n*3 numpy.array of particle coordinates, where each array is an
+independent set of coordinates (e.g. one z-stack, a time step from a
+video, etc.), with each element of the array of form
+<code>[z,y,x]</code>. Each
+set of coordinates is not required to have the same number of particles
+but all stacks must share the same
+bounding box as given by
+<code>boundary</code>, and all coordinates must be within this bounding box.</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower bound for the pairwise distance, left edge of 0th bin. The
+default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>upper bound for the pairwise distance, right edge of last bin. The
+default is 10.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>bin width for the pairwise distance bins. The default is (rmax-rmin)/20</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array</code>-<code>like</code>, optional</dt>
+<dd>positions of the walls that define the bounding box of the coordinates,
+given as
+<code>((zmin,zmax),(ymin,ymax),(xmin,xmax))</code>. The default is the
+min and max values in the dataset along each dimension.</dd>
+<dt><strong><code>density</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>number density of particles in the box to use for normalizing the
+values. The default is the average density based on <code>coordinates</code> and
+<code>boundary</code>.</dd>
+<dt><strong><code>periodic_boundary</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether periodic boundary conditions are used. The default is False.</dd>
+<dt><strong><code>handle_edge</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to correct for edge effects in non-periodic boundary
+conditions. The default is True.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>rvals</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>bin-edges of the radial distribution function.</dd>
+<dt><strong><code>bincounts</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>values for the bins of the radial distribution function</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p>
+<p>[2] Kopera, B. A. F., &amp; Retsch, M. (2018). Computing the 3D Radial
+Distribution Function from Particle Positions: An Advanced Analytic
+Approach. Analytical Chemistry, 90(23), 13909–13914.
+<a href="https://doi.org/10.1021/acs.analchem.8b03157">https://doi.org/10.1021/acs.analchem.8b03157</a></p></section>
+</dd>
+<dt id="potentials_from_particle_insertion.rdf_insertion_binned_3d"><code class="name flex">
+<span>def <span class="ident">rdf_insertion_binned_3d</span></span>(<span>coordinates, pairpotential, rmax, dr, boundary, pairpotential_binedges=None, n_ins=1000, interpolate=True, rmin=0, periodic_boundary=False, avoid_boundary=False, avoid_coordinates=True)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Calculate g(r) from insertion of test-particles into sets of existing
+coordinates, averaged over bins of width dr, and based on the pairwise
+interaction potential u(r) (in units of kT).</p>
+<p>Implementation partly based on ref. [1] but with novel corrections for
+edge effects based on analytical formulas from refs. [2] and [3] for
+periodic and nonperiodic boundary conditions respectively.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>list</code>-<code>like</code> of <code>numpy.array</code></dt>
+<dd>List of sets of coordinates, where each item along the 0th dimension is
+a n*3 numpy.array of particle coordinates, where each array is an
+independent set of coordinates (e.g. one z-stack, a time step from a
+video, etc.), with each element of the array of form
+<code>[z,y,x]</code>. Each
+set of coordinates is not required to have the same number of particles
+but all stacks must share the same
+bounding box as given by
+<code>boundary</code>, and all coordinates must be within this bounding box.</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>iterable</code></dt>
+<dd>list of values for the pairwise interaction potential. Must have length
+of <code>len(pairpotential_binedges)-1</code> and be in units of thermal energy kT</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code></dt>
+<dd>cut-off radius for the pairwise distance (right edge of last bin).</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code></dt>
+<dd>bin width of the pairwise distance bins.</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array</code>-<code>like</code> of <code>form</code> <code>((</code>zmin<code>,</code>zmax<code>),(</code>ymin<code>,</code>ymax<code>),(</code>xmin<code>,</code>xmax<code>))</code></dt>
+<dd>positions of the walls that define the bounding box of the coordinates.</dd>
+<dt><strong><code>pairpotential_binedges</code></strong> :&ensp;<code>iterable</code>, optional</dt>
+<dd>bin edges corresponding to the values in <code>pairpotential. The default
+is None, which uses the bins defined by</code>rmin<code>,</code>rmax<code>and</code>dr`.</dd>
+<dt><strong><code>n_ins</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>the number of test-particles to insert into each item in <code>coordinates</code>.
+The default is 1000.</dd>
+<dt><strong><code>interpolate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to use linear interpolation for calculating the interaction of
+two particles using the values in <code>pairpotential</code>. The default is True.</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower cut-off for the pairwise distance. The default is 0.</dd>
+<dt><strong><code>periodic_boundary</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether periodic boundary conditions are used. The default is False.</dd>
+<dt><strong><code>avoid_boundary</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, all test-particles are inserted at least <code>rmax</code> away from any
+of the surfaces defined in <code>boundary</code> to avoid effects of the finite
+volume of the bounding box. The default is False, which, if
+<code>periodic_boundary=False</code>, uses an analytical correction factor for
+missing volume of test-particles near the boundaries.</dd>
+<dt><strong><code>avoid_coordinates</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to insert test-particles at least <code>rmin</code> away from the center
+of any of the 'real' coordinates in <code>coordinates</code>. The default is True.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pair_correlation</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>values for the rdf / pair correlation function in each bin</dd>
+<dt><strong><code>counter</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>number of pair counts that contributed to the (mean) values in each bin</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Stones, A. E., Dullens, R. P. A., &amp; Aarts, D. G. A. L. (2019). Model-
+Free Measurement of the Pair Potential in Colloidal Fluids Using Optical
+Microscopy. Physical Review Letters, 123(9), 098002.
+<a href="https://doi.org/10.1103/PhysRevLett.123.098002">https://doi.org/10.1103/PhysRevLett.123.098002</a></p>
+<p>[2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p>
+<p>[3] Kopera, B. A. F., &amp; Retsch, M. (2018). Computing the 3D Radial
+Distribution Function from Particle Positions: An Advanced Analytic
+Approach. Analytical Chemistry, 90(23), 13909–13914.
+<a href="https://doi.org/10.1021/acs.analchem.8b03157">https://doi.org/10.1021/acs.analchem.8b03157</a></p></section>
+</dd>
+<dt id="potentials_from_particle_insertion.rdf_insertion_exact_3d"><code class="name flex">
+<span>def <span class="ident">rdf_insertion_exact_3d</span></span>(<span>coordinates, pairpotential, rmax, dr, boundary, pairpotential_binedges=None, gen_prob_reps=1000, shell_prob_reps=10, interpolate=True, use_numba=True)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>calculate g(r) from particle insertion method using particle coordinates
+and pairwise interaction potential u(r) (in units of kT). Inserts test-
+particles at a specific r for every real particle</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>list</code> of <code>numpy.array</code> of <code>floats</code> of <code>shape</code> <code>nt</code><em><code>n</code></em><code>3</code></dt>
+<dd>The coordinates of particles in the system</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>the value of the interparticle potential in each bin of 0 to rmax+dr
+in steps of dr. The value is assumed to correspond to the centrepoint
+of the bins.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code></dt>
+<dd>cut-off value for the radius. Interactions beyond this range are
+considered negligable. Right edge of last bin in the pair potential</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code></dt>
+<dd>bin width/step size of the interparticle distance used for g(r) and the
+pair potential.</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>tuple</code> of <code>floats</code> of <code>form</code> ((<code>zmin</code>,<code>zmax</code>),(<code>ymin</code>,<code>ymax</code>),(<code>xmin</code>,<code>xmax</code>))</dt>
+<dd>defines the boundaries of the box in which coordinates may exist.</dd>
+<dt><strong><code>gen_prob_reps</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of trial particles used to evaluate the general probability of
+placing a particle at random coordinates in the box defined by
+<code>boundary</code>. The default is 1000.</dd>
+<dt><strong><code>shell_prob_reps</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of trial particles per reference coordinate in <code>coordinates</code>
+used to evaluate the probability of placing a particle in each distance
+bin. The default is 10.</dd>
+<dt><strong><code>interpolate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If true, the pair potential is linearly interpolated between bin
+centres to calculate the interactions between all pairs of particles.
+If false, the value from the nearest bin is taken which is
+slower to compute. The default is True.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pair_correlation</code></strong> :&ensp;<code>list</code> of <code>float</code></dt>
+<dd>the pair correlation / radial distribution functions evaluated in the
+bins whose edges are defined by numpy.arange(0,rmax+dr,dr)</dd>
+<dt><strong><code>counters</code></strong> :&ensp;<code>list</code> of <code>int</code></dt>
+<dd>The number of trialparticles evaluated for each distance bin</dd>
+</dl></section>
+</dd>
+<dt id="potentials_from_particle_insertion.run_iteration"><code class="name flex">
+<span>def <span class="ident">run_iteration</span></span>(<span>coordinates, pair_correlation_func, boundary, initial_guess=None, rmin=0, rmax=20, dr=0.5, convergence_tol=1e-05, max_iterations=100, zero_clip=1e-20, regulate=False, **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Run the algorithm to solve for the pairwise potential that most accurately
+reproduces the radial distribution function using test-particle insertion,
+as described in ref. [1]. </p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>list</code>-<code>like</code> of <code>numpy.array</code></dt>
+<dd>List of sets of coordinates, where each item along the 0th dimension is
+a n*3 numpy.array of particle coordinates, where each array is an
+independent set of coordinates (e.g. one z-stack, a time step from a
+video, etc.), with each element of the array of form
+<code>[z,y,x]</code>. Each
+set of coordinates is not required to have the same number of particles
+but all stacks must share the same
+bounding box as given by
+<code>boundary</code>, and all coordinates must be within this bounding box.</dd>
+<dt><strong><code>pair_correlation_func</code></strong> :&ensp;<code>list</code> of <code>float</code></dt>
+<dd>bin values for the true pair correlation function that the algorithm
+will try to match iteratively.</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array</code>-<code>like</code> of <code>form</code> <code>((</code>zmin<code>,</code>zmax<code>),(</code>ymin<code>,</code>ymax<code>),(</code>xmin<code>,</code>xmax<code>))</code></dt>
+<dd>positions of the walls that define the bounding box of the coordinates.</dd>
+<dt><strong><code>initial_guess</code></strong> :&ensp;<code>list</code> of <code>float</code>, optional</dt>
+<dd>Initial guess for the particle potential on the 0th iteration. The
+default is None which gives 0 in each bin.</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>left edge of the smallest bin in interparticle distance r to consider.
+The default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Right edge of the largest bin in interparticle distance r to consider.
+The default is 20.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Stepsize or bin width in interparticle distance r. The default is 0.5.</dd>
+<dt><strong><code>convergence_tol</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>target value for χ², if it dips below this value the iteration is
+considered to be converged and ended. The default is <code>1e-5</code>.</dd>
+<dt><strong><code>max_iterations</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Maximum number of iterations after which the algorithm is ended. The
+default is 100.</dd>
+<dt><strong><code>zero_clip</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>values below the value of zero-clip are set to this value to avoid
+devision by zero errors. The default is <code>1e-20</code>.</dd>
+<dt><strong><code>regulate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, use regularization to more gently nudge towards the input g(r)
+at the cost of slower convergence. Experimental option. The default is
+<code>False</code>.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>key</code>=<code>value</code></dt>
+<dd>Additional keyword arguments are passed on to <a title="potentials_from_particle_insertion.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.rdf_insertion_binned_3d"><code>rdf_insertion_binned_3d()</code></a></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>χ²</code></strong> :&ensp;<code>list</code> of <code>float</code></dt>
+<dd>summed squared error in the pair correlation function for each
+iteration</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>list</code> of <code>list</code> of <code>float</code></dt>
+<dd>the values for the pair potential in each bin for each iteration</dd>
+<dt><strong><code>paircorrelation</code></strong> :&ensp;<code>list</code> of <code>list</code> of <code>float</code></dt>
+<dd>the values for the pair correlation function from test-particle
+insertion for each iteration</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Stones, A. E., Dullens, R. P. A., &amp; Aarts, D. G. A. L. (2019). Model-
+Free Measurement of the Pair Potential in Colloidal Fluids Using Optical
+Microscopy. Physical Review Letters, 123(9), 098002.
+<a href="https://doi.org/10.1103/PhysRevLett.123.098002">https://doi.org/10.1103/PhysRevLett.123.098002</a></p>
+<h2 id="see-also">See also</h2>
+<dl>
+<dt><a title="potentials_from_particle_insertion.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.rdf_insertion_binned_3d"><code>rdf_insertion_binned_3d()</code></a></dt>
+<dd>routine for g(r) from test-particle insertion</dd>
+</dl></section>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="potentials_from_particle_insertion.rdf_dist_hist_3d" href="#potentials_from_particle_insertion.rdf_dist_hist_3d">rdf_dist_hist_3d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.rdf_insertion_binned_3d">rdf_insertion_binned_3d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.rdf_insertion_exact_3d" href="#potentials_from_particle_insertion.rdf_insertion_exact_3d">rdf_insertion_exact_3d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.run_iteration" href="#potentials_from_particle_insertion.run_iteration">run_iteration</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
