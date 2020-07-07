@@ -1,5 +1,5 @@
 """
-Set of functions for determining the missing volume of a spherical shell which
+Functions for determining the missing volume of a spherical shell which
 falls partially outside of a cuboidal boundary.
 
 Maarten Bransen, 2020
@@ -165,7 +165,7 @@ def _sphere_shell_vol_frac_periodic(r,boxsize):
     edge length boxsize. Effective volume means the volume to which no shorter
     path exists through the periodic boundaries than the r under consideration.
     
-    Analytical formulas taken from ref. [1]
+    Analytical formulas taken from ref. [1].
 
     Parameters
     ----------
@@ -186,7 +186,6 @@ def _sphere_shell_vol_frac_periodic(r,boxsize):
     [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
     periodic boundary conditions.
     https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
-
 
     """
     #init volume list, scale r to boxsize
