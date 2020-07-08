@@ -512,7 +512,8 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #loop over all sets of coordinates
     bincounts = []
-    for coords in coordinates:
+    for i,coords in enumerate(coordinates):
+        print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
         
         #set up KDTree for fast neighbour finding
         #shift box boundary corner to origin for periodic KDTree
@@ -558,6 +559,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         #normalize and add to overall list
         bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
     
+    print()
     #average all datasets
     bincounts = np.mean(bincounts,axis=0)
     
