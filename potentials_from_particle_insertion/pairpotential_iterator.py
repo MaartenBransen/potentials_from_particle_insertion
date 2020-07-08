@@ -123,7 +123,7 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
                     np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation
                 ],
                 axis=0,
-                weights=[i,max_iterations-i]
+                weights=[0 if i<2 else i, max_iterations-i]
                 )
         else:
              newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
