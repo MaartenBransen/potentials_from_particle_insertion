@@ -121,10 +121,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:
-        if rmax > np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)):
+        if rmax > max(boundary[:,1]-boundary[:,0])/2:
             raise ValueError(
-                'rmax cannot be larger than the largest diagonal in boundary,'+
-                ' use rmax < {:}'.format(np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)))
+                'rmax cannot be larger than half the largest dimension in '+
+                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
             )
     
     #create bin edges and bin centres for r
@@ -468,11 +468,11 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         coordinates = coordinates[None,:,:]
     
     #set default step size
-    if not dr:
+    if type(dr)==type(dr):
         dr = (rmax-rmin)/20
     
     #set default boundary as min and max values in dataset
-    if not boundary:
+    if type(boundary)==type(None):
         boundary = np.array([
                 [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
                 [coordinates[:,:,1].min(),coordinates[:,:,1].max()],
@@ -499,9 +499,10 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:
-        if rmax > np.sqrt(np.sum((boundary[:,1]-boundary[:,0])**2)):
+        if rmax > max(boundary[:,1]-boundary[:,0])/2:
             raise ValueError(
-                'rmax cannot be larger than the largest diagonal in boundary'
+                'rmax cannot be larger than half the largest dimension in '+
+                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
             )
     
     #set density to mean number density in dataset
