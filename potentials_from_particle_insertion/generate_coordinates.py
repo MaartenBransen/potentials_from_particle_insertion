@@ -104,8 +104,8 @@ def _rand_coord_on_sphere(npoints=1,radius=1,origin=[0,0,0]):
         
     References
     ----------
-    [1] Marsaglia, G. "Choosing a Point from the Surface of a Sphere." Ann. Math. 
-    Stat. 43, 645-646, 1972
+    [1] Marsaglia, G. "Choosing a Point from the Surface of a Sphere." Ann. 
+    Math. Stat. 43, 645-646, 1972
     
     [2] Muller, M. E. "A Note on a Method for Generating Points Uniformly on
     N-Dimensional Spheres." Comm. Assoc. Comput. Mach. 2, 19-20, Apr. 1959.
