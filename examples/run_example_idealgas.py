@@ -17,7 +17,7 @@ rmin = 0
 rmax = 5
 dr = 0.1
 
-#%% create fake data
+# create fake data
 boundary = np.array([[0,boxsize]]*3)
 coords = [_rand_coord_in_box(boundary,n=n) for _ in range(m)]
 
@@ -77,6 +77,7 @@ from matplotlib.cm import get_cmap
 cmap = get_cmap('jet')
 colors = [cmap(i/(len(error)-1))[:3]+(0.3,) for i in range(len(error))]
 
+#plot all iterations on top of eachother
 with plt.rc_context(params):
     fig = plt.figure()
     plt.plot(bincent,binvals,label='distance histogram',color='k')
@@ -86,6 +87,7 @@ with plt.rc_context(params):
     plt.ylabel('g(r)')
     plt.tight_layout()
 
+#plot u(r) for all iterations on top of eachother
 with plt.rc_context(params):
     fig = plt.figure()
     [plt.plot(bincent,potential[i],label='particle insertion {:}'.format(i),color=colors[i]) for i in range(len(error))]
@@ -94,6 +96,7 @@ with plt.rc_context(params):
     plt.ylabel('u(r) $(k_B T)$')
     plt.tight_layout()
 
+#plot chi / error as function of iteration number
 with plt.rc_context(params):
     fig=plt.figure()
     plt.plot(range(1,len(error)+1),error)
@@ -103,6 +106,7 @@ with plt.rc_context(params):
     plt.ylabel('χ²')
     plt.tight_layout()
 
+#plot distance histogram and last iteration together
 with plt.rc_context(params):
     plt.figure()
     plt.axhline(1,color='k',linewidth=0.75)
@@ -114,6 +118,7 @@ with plt.rc_context(params):
     plt.legend(frameon=False)
     plt.tight_layout()
 
+#plot u(r) of last iteration
 with plt.rc_context(params):
     plt.figure()
     plt.axhline(0,color='k',linewidth=0.75)
