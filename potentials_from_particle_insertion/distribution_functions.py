@@ -20,7 +20,7 @@ from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic
 def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,periodic_boundary=False,
-                            avoid_boundary=False,avoid_coordinates=True):
+                            avoid_boundary=False,avoid_coordinates=False):
     """Calculate g(r) from insertion of test-particles into sets of existing
     coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -69,7 +69,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         missing volume of test-particles near the boundaries.
     avoid_coordinates : bool, optional
         whether to insert test-particles at least `rmin` away from the center 
-        of any of the 'real' coordinates in `coordinates`. The default is True.
+        of any of the 'real' coordinates in `coordinates`. The default is False.
 
     Returns
     -------
