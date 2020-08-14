@@ -403,7 +403,8 @@ def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
 
 
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
-                     density=None,periodic_boundary=False,handle_edge=True):
+                     density=None,periodic_boundary=False,handle_edge=True,
+                     quiet=False):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 3D coordinate sets. Provided for convenience. Edge correction based
     on refs [1] and [2].
@@ -439,6 +440,9 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     handle_edge : bool, optional
         whether to correct for edge effects in non-periodic boundary 
         conditions. The default is True.
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
 
     Returns
     -------
@@ -463,7 +467,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     rvals = np.arange(rmin,rmax+dr,dr)
     
     #assure 3D array for coordinates
-    coordinates = np.array(coordinates)
+    coordinates = np.array(coordinates,dtype=object)
     if coordinates.ndim == 2:
         coordinates = coordinates[None,:,:]
     
@@ -514,7 +518,10 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #loop over all sets of coordinates
     bincounts = []
     for i,coords in enumerate(coordinates):
-        print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
+        
+        #print progress
+        if not quiet:
+            print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
         
         #set up KDTree for fast neighbour finding
         #shift box boundary corner to origin for periodic KDTree
@@ -560,7 +567,10 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         #normalize and add to overall list
         bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
     
-    print()
+    #newline
+    if not quiet:
+        print()
+    
     #average all datasets
     bincounts = np.mean(bincounts,axis=0)
     
