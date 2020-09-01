@@ -215,3 +215,11 @@ def _sphere_shell_vol_frac_periodic(r,boxsize):
     full = 4/3*np.pi*(r[1:]**3 - r[:-1]**3)
     
     return part/full
+
+#TODO
+def _circle_ring_area_fraction(r,boundary):
+    return None
+
+#TODO
+def _circle_ring_area_frac_periodic(r,boxsize):
+    return None

@@ -14,7 +14,8 @@ from scipy.spatial import cKDTree
 #internal imports
 from .generate_coordinates import _rand_coord_in_box,\
     _rand_coord_at_dist,_rand_coord_on_sphere
-from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic
+from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic,\
+    _circle_ring_area_fraction,_circle_ring_area_frac_periodic
 
 #defs
 def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
@@ -555,6 +556,160 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     dist
                     )
                 boundarycorr=_sphere_shell_vol_fraction(
+                    rvals,
+                    boundary-coords[:,:,np.newaxis]
+                    )
+                counts = np.sum(counts/boundarycorr,axis=0)
+        
+        #otherwise just histogram as a 1d list of distances
+        else:
+            counts = np.histogram(dist[mask],bins=rvals)[0]
+        
+        #normalize and add to overall list
+        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
+    
+    #newline
+    if not quiet:
+        print()
+    
+    #average all datasets
+    bincounts = np.mean(bincounts,axis=0)
+    
+    return rvals,bincounts
+
+
+def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
+                     density=None,periodic_boundary=False,handle_edge=True,
+                     quiet=False):
+    """calculates g(r) via a 'conventional' distance histogram method for a 
+    set of 2D coordinate sets. Provided for convenience. Edge correction based
+    on refs [1] and [2].
+
+    Parameters
+    ----------
+    coordinates : numpy.array or list-like of numpy.array
+        list of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        but all stacks must share the same  bounding box as given by 
+        `boundary`, and all coordinates must be within this bounding box.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    boundary : array-like, optional
+        positions of the walls that define the bounding box of the coordinates,
+        given as  `((zmin,zmax),(ymin,ymax),(xmin,xmax))`. The default is the 
+        min and max values in the dataset along each dimension.
+    density : float, optional
+        number density of particles in the box to use for normalizing the 
+        values. The default is the average density based on `coordinates` and
+        `boundary`.
+    periodic_boundary : bool, optional
+        whether periodic boundary conditions are used. The default is False.
+    handle_edge : bool, optional
+        whether to correct for edge effects in non-periodic boundary 
+        conditions. The default is True.
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : numpy.array
+        values for the bins of the radial distribution function
+        
+    """
+    #create bins
+    rvals = np.arange(rmin,rmax+dr,dr)
+    
+    #assure 3D array for coordinates
+    coordinates = np.array(coordinates,dtype=object)
+    
+    if coordinates.ndim == 2:
+        coordinates = coordinates[None,:,:]
+    
+    #set default step size
+    if type(dr)==type(dr):
+        dr = (rmax-rmin)/20
+    
+    #set default boundary as min and max values in dataset
+    if type(boundary)==type(None):
+        boundary = np.array([
+                [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
+                [coordinates[:,:,1].min(),coordinates[:,:,1].max()]
+            ])
+    else:
+        boundary = np.array(boundary)
+    
+    
+    #check rmax and boundary for edge-handling in periodic boundary conditions
+    if periodic_boundary:
+        #TODO
+        pass
+    
+    #check rmax and boundary for edge handling without periodic boundaries
+    else:
+        if rmax > max(boundary[:,1]-boundary[:,0])/2:
+            raise ValueError(
+                'rmax cannot be larger than half the largest dimension in '+
+                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
+            )
+    
+    #set density to mean number density in dataset
+    if not density:
+        vol = np.product(boundary[:,1]-boundary[:,0])
+        density = np.mean([len(coords)/vol for coords in coordinates])
+    
+    
+    #loop over all sets of coordinates
+    bincounts = []
+    for i,coords in enumerate(coordinates):
+        
+        #print progress
+        if not quiet:
+            print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
+        
+        #set up KDTree for fast neighbour finding
+        #shift box boundary corner to origin for periodic KDTree
+        if periodic_boundary:
+            tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
+        else:
+            tree = cKDTree(coords)
+        
+        #query tree for any neighbours up to rmax
+        dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
+        
+        #remove pairs with self, padded (infinite) values and anythin below rmin
+        dist = dist[:,1:]
+        mask = np.isfinite(dist) & (dist>=rmin)
+        
+        #when dealing with edges, histogram the distances per reference particle
+        #and apply correction factor for missing volume
+        if handle_edge:
+            if periodic_boundary:
+                boundarycorr = _circle_ring_area_frac_periodic(
+                    rvals,
+                    min(boundary[:,1]-boundary[:,0])
+                )
+                counts = np.histogram(dist[mask],bins=rvals)/boundarycorr
+
+            else:
+                dist = np.ma.masked_array(dist,mask)
+                counts = np.apply_along_axis(
+                    lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
+                    1,
+                    dist
+                    )
+                boundarycorr=_circle_ring_area_fraction(
                     rvals,
                     boundary-coords[:,:,np.newaxis]
                     )
