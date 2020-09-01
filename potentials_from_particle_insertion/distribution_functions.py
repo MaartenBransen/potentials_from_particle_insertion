@@ -654,7 +654,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #check rmax and boundary for edge-handling in periodic boundary conditions
     if periodic_boundary:
         #TODO
-        pass
+        raise NotImplementedError('lol sucks to be you I did not write this yet')
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:

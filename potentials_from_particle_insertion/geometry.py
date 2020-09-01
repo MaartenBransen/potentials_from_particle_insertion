@@ -216,9 +216,69 @@ def _sphere_shell_vol_frac_periodic(r,boxsize):
     
     return part/full
 
-#TODO
 def _circle_ring_area_fraction(r,boundary):
-    return None
+    """fully numpy vectorized function which returns the fraction of the area 
+    of circular rings r+dr around particles, for a list of particles and a 
+    list of bin-edges for the radii simultaneously. Uses analytical formulas
+    for the intersection area of a circle and a rectangle.
+    
+    Parameters
+    ----------
+    r : numpy.array
+        list of edges for the bins in r, where the number of shells is len(r)-1
+    boundary : numpy.array of shape n*2*2
+        list of boundary values shifted with respect to the particle 
+        coordinates such that the particles are in the origin, in other words
+        the distances to all 6 boundaries. First dimension contains all 
+        particles, second dimension refers to spatial dimension (y,x) and
+        third dimension is used to split the boundaries in the negative and 
+        positive directions (or min and max of bounding box in each dimension)
+
+    Returns
+    -------
+    numpy.array of shape n*(len(r)-1)
+        array containing the fraction of each circle ring in r around each 
+        particle which lies inside of the boundaries, i.e. A_in/A_tot
+    """
+    
+    
+    #initialize array with row for each particle and column for each r
+    nrow,ncol = len(boundary),len(r)
+    area = np.zeros((nrow,ncol))
+    
+    #mirror all particle-edge distances into positive octant
+    boundary = abs(boundary)
+    
+    #loop over all quarters
+    for hy in (boundary[:,0,0],boundary[:,0,1]):
+        for hx in (boundary[:,1,0],boundary[:,1,1]):
+            
+            #if circle edge entirely out of boxquarter, add boxquarter area
+            boxmask = (hx**2+hy**2)[:,np.newaxis] < r**2
+            area[boxmask] += np.broadcast_to((hx*hy)[:,np.newaxis],(nrow,ncol))[boxmask]
+            
+            #to the rest add a quarter sphere
+            boxmask = ~boxmask
+            area[boxmask] += np.broadcast_to((np.pi/6*r**3)[np.newaxis,:],(nrow,ncol))[boxmask]
+            
+            #remove hemispherical caps
+            for h in (hy,hx):
+                
+                #check where to change values, select those items
+                mask = (h[:,np.newaxis] < r)*boxmask
+                indices = np.where(mask)
+                
+                h = h[indices[0]]
+                rs = r[indices[1]]
+                
+                #subtract cap area
+                area[mask] -= rs*(rs*np.arccos(h/r) - h*np.sqrt(1-h**2/rs**2))
+    
+    #calculate each shell by subtracting the sphere volumes of previous r
+    part_ring = area[:,1:] - area[:,:-1]
+    tot_ring = np.pi * (r[1:]**2 - r[:-1]**2)
+    
+    return part_ring/tot_ring
 
 #TODO
 def _circle_ring_area_frac_periodic(r,boxsize):
