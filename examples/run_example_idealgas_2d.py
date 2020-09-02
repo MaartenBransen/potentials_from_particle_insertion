@@ -2,7 +2,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from potentials_from_particle_insertion import run_iteration,rdf_dist_hist_3d
+from potentials_from_particle_insertion import run_iteration,rdf_dist_hist_2d
 from potentials_from_particle_insertion.generate_coordinates import _rand_coord_in_box
 
 #%% input parameters
@@ -18,14 +18,14 @@ rmax = 5
 dr = 0.1
 
 # create fake data
-boundary = np.array([[0,boxsize]]*3)
+boundary = np.array([[0,boxsize]]*2)
 coords = [_rand_coord_in_box(boundary,n=n) for _ in range(m)]
 
 
 #%% calculate distance histogram g(r)
 
 #calculate histogram binning g(r)
-binedges,binvals = rdf_dist_hist_3d(
+binedges,binvals = rdf_dist_hist_2d(
     coords,
     rmin=rmin,
     rmax=rmax,
@@ -39,7 +39,7 @@ bincent = (binedges[1:]+binedges[:-1])/2
 #plot rdf
 plt.figure()
 plt.plot(bincent,binvals,'-r',label='dist hist')
-plt.xlabel('r ($\mathrm{\mu m}$)')
+plt.xlabel('r')
 plt.ylabel('g(r)')
 plt.xlim(rmin,rmax)
 
