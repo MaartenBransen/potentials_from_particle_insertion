@@ -104,61 +104,6 @@ def _sphere_shell_vol_fraction(r,boundary):
     
     return part_shell/tot_shell
 
-@nb.njit()
-def _sphere_oct_vol(r,hx,hy,hz):
-    """numba-compiled subroutine for calculating volume of a sphere octant 
-    intersecting with one boundary octant. See _sphere_shell_vol_fraction_nb.
-    """
-    
-    #sphere surface entirely outside of box, return box oct vol
-    if hx**2+hy**2+hz**2 < r**2:
-        return hx*hy*hz
-    
-    #total sphere oct vol
-    v = np.pi/6*r**3
-    
-    #remove spherical caps
-    for h in (hx,hy,hz):
-        if h < r:
-            v -= np.pi/4*(2/3*r**3 - h*r**2 + h**3/3)
-        
-    #add back edge wedges where two caps overlap
-    for h0,h1 in [(hx,hy),(hx,hz),(hy,hz)]:
-        if h0**2+h1**2 < r**2:
-            
-            c = np.sqrt(r**2-h0**2-h1**2)
-            v += r**3*(np.pi-2*np.arctan(h0*h1/(r*c)))/6 +\
-                (np.arctan(h0/c)-np.pi/2)*(h1*r**2-h1**3/3)/2 +\
-                (np.arctan(h1/c)-np.pi/2)*(h0*r**2-h0**3/3)/2 +\
-                h0 * h1 * c / 3
-    return v
-
-@nb.njit()
-def _sphere_shell_vol_fraction_nb(radii,boundary):
-    """numba-compiled version of _sphere_shell_vol_fraction, with identical
-    input and output but different computational details.
-    
-    For usage details see _sphere_shell_vol_fraction()"""
-    #initialize array with row for each particle and column for each r
-    nrow,ncol = len(boundary),len(radii)
-    vol = np.zeros((nrow,ncol))
-    
-    for i in nb.prange(nrow):
-        p = boundary[i]
-        for j in range(ncol):
-            r = radii[j]
-            if r<1e-20:#skip radii of 0 (within 1e-20 tolerance)
-                continue
-            for hz in p[0]:
-                for hy in p[1]:
-                    for hx in p[2]:
-                        vol[i,j] += _sphere_oct_vol(r,abs(hx),abs(hy),abs(hz))
-    
-    part_shell = vol[:,1:] - vol[:,:-1]
-    tot_shell = 4/3*np.pi * (radii[1:]**3 - radii[:-1]**3)
-    
-    return part_shell / tot_shell
-
 def _sphere_shell_vol_frac_periodic(r,boxsize):
     """returns effective volume of each shell defined by the intervals between
     the radii in r, under periodic boundary conditions in a cubic box with 
@@ -241,10 +186,9 @@ def _circle_ring_area_fraction(r,boundary):
         particle which lies inside of the boundaries, i.e. A_in/A_tot
     """
     
-    
     #initialize array with row for each particle and column for each r
     nrow,ncol = len(boundary),len(r)
-    area = np.zeros((nrow,ncol))
+    area = np.zeros((nrow,ncol),dtype=float)
     
     #mirror all particle-edge distances into positive octant
     boundary = abs(boundary)
@@ -272,7 +216,7 @@ def _circle_ring_area_fraction(r,boundary):
                 rs = r[indices[1]]
                 
                 #subtract cap area
-                area[mask] -= rs*(rs*np.arccos(h/r) - h*np.sqrt(1-h**2/rs**2))
+                area[mask] -= rs*(rs*np.arccos(h/rs) - h*np.sqrt(1-h**2/rs**2))/4
     
     #calculate each shell by subtracting the sphere volumes of previous r
     part_ring = area[:,1:] - area[:,:-1]
@@ -280,6 +224,97 @@ def _circle_ring_area_fraction(r,boundary):
     
     return part_ring/tot_ring
 
-#TODO
 def _circle_ring_area_frac_periodic(r,boxsize):
-    return None
+    """returns effective area of each ring defined by the intervals between
+    the radii in r, under periodic boundary conditions in a square box with 
+    edge length boxsize. Effective area means the area to which no shorter
+    path exists through the periodic boundaries than the r under consideration.
+    
+    Parameters
+    ----------
+    r : numpy.array of float
+        list of bin edges defining the shells where each interval between 
+        values in r is treated as shell.
+    boxsize : float
+        edge length of the square box.
+
+    Returns
+    -------
+    numpy.array of float
+        Effective volume for each interval r -> r+dr in r. Values beyond 
+        sqrt(2)/2 boxsize are padded with numpy.nan values.
+
+    """
+    
+    #scale r to boxsize
+    r = r/boxsize
+    
+    #add full circle area to each
+    area = np.pi*r**2
+    
+    #between boxlen/2 and sqrt(2)/2 boxlen subtract 4 circle segments
+    mask = (1/2 < r) & (r <= np.sqrt(2)/2)
+    area[mask] -= 4*r[mask]*(r[mask]*np.arccos(1/(2*r[mask])) - np.sqrt(1-1/(4*r[mask]**2))/2)
+    
+    #beyond sqrt(2)/2 boxlen there is no useful info
+    area[np.sqrt(2)/2 < r] = np.nan
+    
+    part_ring = area[1:] - area[:-1]
+    full_ring = np.pi*(r[1:]**2 - r[:-1]**2)
+    
+    return part_ring/full_ring
+
+@nb.njit()
+def _sphere_oct_vol_nb(r,hx,hy,hz):
+    """numba-compiled subroutine for calculating volume of a sphere octant 
+    intersecting with one boundary octant. See _sphere_shell_vol_fraction_nb.
+    """
+    
+    #sphere surface entirely outside of box, return box oct vol
+    if hx**2+hy**2+hz**2 < r**2:
+        return hx*hy*hz
+    
+    #total sphere oct vol
+    v = np.pi/6*r**3
+    
+    #remove spherical caps
+    for h in (hx,hy,hz):
+        if h < r:
+            v -= np.pi/4*(2/3*r**3 - h*r**2 + h**3/3)
+        
+    #add back edge wedges where two caps overlap
+    for h0,h1 in [(hx,hy),(hx,hz),(hy,hz)]:
+        if h0**2+h1**2 < r**2:
+            
+            c = np.sqrt(r**2-h0**2-h1**2)
+            v += r**3*(np.pi-2*np.arctan(h0*h1/(r*c)))/6 +\
+                (np.arctan(h0/c)-np.pi/2)*(h1*r**2-h1**3/3)/2 +\
+                (np.arctan(h1/c)-np.pi/2)*(h0*r**2-h0**3/3)/2 +\
+                h0 * h1 * c / 3
+    return v
+
+@nb.njit()
+def _sphere_shell_vol_fraction_nb(radii,boundary):
+    """numba-compiled version of _sphere_shell_vol_fraction, with identical
+    input and output but different computational details.
+    
+    For usage details see _sphere_shell_vol_fraction()"""
+    #initialize array with row for each particle and column for each r
+    nrow,ncol = len(boundary),len(radii)
+    vol = np.zeros((nrow,ncol))
+    
+    for i in nb.prange(nrow):
+        p = boundary[i]
+        for j in range(ncol):
+            r = radii[j]
+            if r<1e-20:#skip radii of 0 (within 1e-20 tolerance)
+                continue
+            for hz in p[0]:
+                for hy in p[1]:
+                    for hx in p[2]:
+                        vol[i,j] += _sphere_oct_vol_nb(r,abs(hx),abs(hy),abs(hz))
+    
+    part_shell = vol[:,1:] - vol[:,:-1]
+    tot_shell = 4/3*np.pi * (radii[1:]**3 - radii[:-1]**3)
+    
+    return part_shell / tot_shell

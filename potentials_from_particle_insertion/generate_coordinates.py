@@ -8,18 +8,20 @@ def _rand_coord_in_box(boundary,n=1):
 
     Parameters
     ----------
-    boundary : iterable of form ((zmin,zmax),(ymin,ymax),(xmin,xmax))
-        The half-open interval in which to generate the coordinates.
+    boundary : np.array of form ((zmin,zmax),(ymin,ymax),(xmin,xmax))
+        The half-open interval in which to generate the coordinates, can have
+        any number of dimensions
     n : int, optional
         The number of coordinates to generate. The default is 1.
         
     Returns
     -------
-    numpy.array of n*3
-        Randomly generated coordinates in box
+    numpy.array of n*ndim
+        Randomly generated coordinates in box of ndim dimension
 
     """
-    return np.random.random_sample((n,3))*(boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
+    return np.random.random_sample((n,len(boundary)))*\
+        (boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
 
 def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
     """Random coordinate from contineous uniform distribution of box given by

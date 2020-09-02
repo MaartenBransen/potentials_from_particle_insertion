@@ -546,7 +546,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     rvals,
                     min(boundary[:,1]-boundary[:,0])
                 )
-                counts = np.histogram(dist[mask],bins=rvals)/boundarycorr
+                counts = np.histogram(dist[mask],bins=rvals)[0]/boundarycorr
 
             else:
                 dist = np.ma.masked_array(dist,mask)
@@ -587,7 +587,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
     Parameters
     ----------
-    coordinates : numpy.array or list-like of numpy.array
+    coordinates : numpy.array or list-like of numpy.array of floats
         list of sets of coordinates, where each item along the 0th dimension is
         a n*3 numpy.array of particle coordinates, where each array is an 
         independent set of coordinates (e.g. one z-stack, a time step from a 
@@ -631,9 +631,20 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #create bins
     rvals = np.arange(rmin,rmax+dr,dr)
     
-    #assure 3D array for coordinates
-    coordinates = np.array(coordinates,dtype=object)
+    #assure array of arrays with first axis as dtype=object and rest floats
+    if type(coordinates)==list:#weird syntax but there's no prettier way
+        coordinates = np.array([None]+coordinates,dtype=object)[1:]
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+            )
+    else:
+        raise TypeError(
+            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+        )
     
+    #check list of coordinates or only one coordinate set
     if coordinates.ndim == 2:
         coordinates = coordinates[None,:,:]
     
@@ -653,8 +664,19 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
     if periodic_boundary:
-        #TODO
-        raise NotImplementedError('lol sucks to be you I did not write this yet')
+        if boundary[0,1]-boundary[0,0] == boundary[1,1]-boundary[1,0]:
+            boxlen = boundary[0,1]-boundary[0,0]
+            if rmax > boxlen*np.sqrt(2)/2:
+                raise ValueError(
+                    'rmax cannot be more than sqrt(2)/2 times the size of a '+
+                    'square bounding box when periodic_boundary=True, use '+
+                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(2)/2)
+                )
+        elif rmax > min(boundary[:,1]-boundary[:,0])/2:
+            raise NotImplementedError(
+                'rmax larger than half the smallest box dimension when '+
+                'periodic_boundary=True is only implemented for square boundaries'
+            )
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:
@@ -676,7 +698,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #print progress
         if not quiet:
-            print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
+            print('\rcalculating distance histogram g(r) {:d} of {:d}'.format(i+1,len(coordinates)),end='')
         
         #set up KDTree for fast neighbour finding
         #shift box boundary corner to origin for periodic KDTree
@@ -698,9 +720,9 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             if periodic_boundary:
                 boundarycorr = _circle_ring_area_frac_periodic(
                     rvals,
-                    min(boundary[:,1]-boundary[:,0])
+                    boundary[0,1]-boundary[0,0]
                 )
-                counts = np.histogram(dist[mask],bins=rvals)/boundarycorr
+                counts = np.histogram(dist[mask],bins=rvals)[0]/boundarycorr
 
             else:
                 dist = np.ma.masked_array(dist,mask)
@@ -720,7 +742,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             counts = np.histogram(dist[mask],bins=rvals)[0]
         
         #normalize and add to overall list
-        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
+        bincounts.append(counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / (density*len(coords)))
     
     #newline
     if not quiet:

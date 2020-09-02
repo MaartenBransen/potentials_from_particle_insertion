@@ -3,16 +3,18 @@ Maarten Bransen, 2020
 m.bransen@uu.nl
 """
 
-__version__ = '0.1'
+__version__ = '0.2'
 
 from .pairpotential_iterator import run_iteration
-from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_3d,rdf_dist_hist_3d
+from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_3d,\
+    rdf_dist_hist_3d,rdf_dist_hist_2d
 
 #define all for doing `from .. import *`
 __all__ = [
     'run_iteration',
     'rdf_insertion_binned_3d',
     'rdf_insertion_exact_3d',
+    'rdf_dist_hist_2d',
     'rdf_dist_hist_3d',
 ]
 
