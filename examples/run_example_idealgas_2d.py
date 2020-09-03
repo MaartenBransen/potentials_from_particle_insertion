@@ -15,7 +15,7 @@ m = 100  #number of datasets
 #g(r)
 rmin = 0
 rmax = 5
-dr = 0.05
+dr = 0.1
 
 # create fake data
 boundary = np.array([[0,boxsize]]*2)
@@ -31,7 +31,7 @@ binedges,binvals = rdf_dist_hist_2d(
     rmax=rmax,
     dr=dr,
     boundary=boundary,
-    periodic_boundary=False
+    periodic_boundary=True
 )
 
 bincent = (binedges[1:]+binedges[:-1])/2
@@ -54,7 +54,8 @@ error,potential,rdf,counts = run_iteration(
     rmax=rmax,
     dr=dr,
     max_iterations=10,
-    convergence_tol=1e-6,
+    convergence_tol=1e-7,
+    periodic_boundary=True,
     n_ins=500,
     regulate=True
 )
