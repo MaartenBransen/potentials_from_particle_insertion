@@ -9,7 +9,7 @@ m.bransen@uu.nl
 import numpy as np
 
 #internal imports
-from .distribution_functions import rdf_insertion_binned_3d
+from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_binned_2d
 
 #defs
 def run_iteration(coordinates,pair_correlation_func,boundary,
@@ -27,15 +27,17 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         List of sets of coordinates, where each item along the 0th dimension is
         a n*3 numpy.array of particle coordinates, where each array is an 
         independent set of coordinates (e.g. one z-stack, a time step from a 
-        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
-        set of coordinates is not required to have the same number of particles
-        but all stacks must share the same  bounding box as given by 
-        `boundary`, and all coordinates must be within this bounding box.
+        video, etc.), with each element of the array of form  `[z,y,x]` or 
+        `[y,x]` in case of 2D data. Each set of coordinates is not required to 
+        have the same number of particles but all stacks must share the same 
+        bounding box as given by `boundary`, and all coordinates must be within
+        this bounding box.
     pair_correlation_func : list of float
         bin values for the true pair correlation function that the algorithm 
         will try to match iteratively.
-    boundary : array-like of form `((zmin,zmax),(ymin,ymax),(xmin,xmax))`
+    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
         positions of the walls that define the bounding box of the coordinates.
+        Number of dimensions must match coordinates.
     initial_guess : list of float, optional
         Initial guess for the particle potential on the 0th iteration. The 
         default is None which gives 0 in each bin.
@@ -61,7 +63,8 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         at the cost of slower convergence. Experimental option. The default is
         `False`.
     **kwargs : key=value
-        Additional keyword arguments are passed on to `rdf_insertion_binned_3d`
+        Additional keyword arguments are passed on to `rdf_insertion_binned_2d`
+        or `rdf_insertion_binned_3d`
 
     Returns
     -------
@@ -83,7 +86,8 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
     
     See also
     --------
-    rdf_insertion_binned_3d : routine for g(r) from test-particle insertion
+    rdf_insertion_binned_2d : 2D routine for g(r) from test-particle insertion
+    rdf_insertion_binned_3d : 3D routine for g(r) from test-particle insertion
     """
     
     #create values for bin edges and centres of r
@@ -97,14 +101,20 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
     if type(initial_guess)==type(None):
         initial_guess = np.zeros(len(rcent))
     
-    
-    pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
-    
+    #check dimensionality, select appropriate rdf_insertion routine
+    if len(boundary) == 2:
+        rdf_insertion_binned = rdf_insertion_binned_2d
+    elif len(boundary) == 3:
+        rdf_insertion_binned = rdf_insertion_binned_3d
+    else:
+        raise ValueError('data and boundaries must be 2- or 3-dimensional')
+      
     #set up for 0th iteration seperately
     pairpotential = [initial_guess]
-    newpaircorrelation,_ = rdf_insertion_binned_3d(coordinates,initial_guess,
-                                                   rmax,dr,boundary,rmin=rmin,
-                                                   **kwargs)
+    pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
+    newpaircorrelation,_ = rdf_insertion_binned(coordinates,initial_guess,
+                                                rmax,dr,boundary,rmin=rmin,
+                                                **kwargs)
     newpaircorrelation[newpaircorrelation<zero_clip] = zero_clip#avoid deviding by zero
     paircorrelation = [newpaircorrelation]
     chi_squared = [np.mean((newpaircorrelation - pair_correlation_func)**2)]
@@ -133,7 +143,7 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         pairpotential.append(newpotential)
         
         #use it to calculate the new g(r)
-        newpaircorrelation,c = rdf_insertion_binned_3d(
+        newpaircorrelation,c = rdf_insertion_binned(
             coordinates,
             newpotential,
             rmax,
