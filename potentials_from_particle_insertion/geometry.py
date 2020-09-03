@@ -203,7 +203,7 @@ def _circle_ring_area_fraction(r,boundary):
             
             #to the rest add a quarter sphere
             boxmask = ~boxmask
-            area[boxmask] += np.broadcast_to((np.pi/6*r**3)[np.newaxis,:],(nrow,ncol))[boxmask]
+            area[boxmask] += np.broadcast_to((np.pi/4*r**2)[np.newaxis,:],(nrow,ncol))[boxmask]
             
             #remove hemispherical caps
             for h in (hy,hx):
@@ -216,7 +216,7 @@ def _circle_ring_area_fraction(r,boundary):
                 rs = r[indices[1]]
                 
                 #subtract cap area
-                area[mask] -= rs*(rs*np.arccos(h/rs) - h*np.sqrt(1-h**2/rs**2))/4
+                area[mask] -= rs*(rs*np.arccos(h/rs) - h*np.sqrt(1-h**2/rs**2))/2
     
     #calculate each shell by subtracting the sphere volumes of previous r
     part_ring = area[:,1:] - area[:,:-1]
