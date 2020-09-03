@@ -23,7 +23,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             interpolate=True,rmin=0,periodic_boundary=False,
                             avoid_boundary=False,avoid_coordinates=False):
     """Calculate g(r) from insertion of test-particles into sets of existing
-    coordinates, averaged over bins of width dr, and based on the pairwise 
+    3D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
     
     Implementation partly based on ref. [1] but with novel corrections for 
@@ -58,6 +58,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     interpolate : bool, optional
         whether to use linear interpolation for calculating the interaction of 
         two particles using the values in `pairpotential`. The default is True.
+        If False, the nearest bin value is used.
     rmin : float, optional
         lower cut-off for the pairwise distance. The default is 0.
     periodic_boundary : bool, optional
@@ -65,12 +66,13 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     avoid_boundary : bool, optional
         if True, all test-particles are inserted at least `rmax` away from any 
         of the surfaces defined in `boundary` to avoid effects of the finite
-        volume of the bounding box. The default is False, which, if
-        `periodic_boundary=False`, uses an analytical correction factor for 
-        missing volume of test-particles near the boundaries.
+        volume of the bounding box. The default is False, which uses an 
+        analytical correction factor for missing volume of test-particles near 
+        the boundaries.
     avoid_coordinates : bool, optional
         whether to insert test-particles at least `rmin` away from the center 
-        of any of the 'real' coordinates in `coordinates`. The default is False.
+        of any of the 'real' coordinates in `coordinates`. The default is 
+        False.
 
     Returns
     -------
@@ -95,6 +97,24 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     Approach. Analytical Chemistry, 90(23), 13909–13914. 
     https://doi.org/10.1021/acs.analchem.8b03157
     """
+
+    #assure array of arrays with first axis as dtype=object and rest floats
+    if type(coordinates)==list:#weird syntax but there's no prettier way
+        coordinates = np.array([None]+coordinates,dtype=object)[1:]
+    
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+            )
+    else:
+        raise TypeError(
+            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+        )
+    
+    #assure 3D array for coordinates
+    if coordinates.ndim == 2:
+        coordinates = coordinates[np.newaxis,:,:]
 
     #check if rmax input and boundary are feasible for avoiding boundary
     boundary = np.array(boundary)
@@ -237,8 +257,262 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         prob_r = np.apply_along_axis(
             lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
         
-        if not (periodic_boundary or avoid_boundary):
-            prob_r = prob_r/boundarycorr 
+        #boundarycorrect probability counts for correct weighing
+        if not avoid_boundary:
+            prob_r /= boundarycorr 
+        
+        counts = prob_r.sum(axis=0)
+        
+        #take average of test-particle probabilities in each bin weighted by number
+        # of pair counts
+        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
+        prob_r[counts!=0] /= counts[counts!=0]
+        
+        #store to lists
+        counter[i] = counts
+        pair_correlation[i] = prob_r/prob_tot
+    
+    pair_correlation = np.sum(pair_correlation*counter,axis=0)
+    counter = counter.sum(axis=0)
+    pair_correlation[counter!=0] /= counter[counter!=0]
+    pair_correlation[counter==0] = 0
+    
+    return pair_correlation,counter
+
+def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
+                            pairpotential_binedges=None,n_ins=1000,
+                            interpolate=True,rmin=0,periodic_boundary=False,
+                            avoid_boundary=False,avoid_coordinates=False):
+    """Calculate g(r) from insertion of test-particles into sets of existing
+    2D coordinates, averaged over bins of width dr, and based on the pairwise 
+    interaction potential u(r) (in units of kT).
+    
+    Implementation partly based on ref. [1] but with novel corrections for 
+    edge effects based on analytical formulas for periodic and nonperiodic 
+    boundary conditions.
+
+    Parameters
+    ----------
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*2 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one time step from a video, etc.),
+        with each element of the array of form  `[y,x]`. Each  set of 
+        coordinates is not required to have the same number of particles but 
+        all stacks must share the same  bounding box as given by  `boundary`, 
+        and all coordinates must be within this bounding box.
+    pairpotential : iterable
+        list of values for the pairwise interaction potential. Must have length
+        of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    rmax : float
+        cut-off radius for the pairwise distance (right edge of last bin).
+    dr : float
+        bin width of the pairwise distance bins.
+    boundary : array-like of form `((ymin,ymax),(xmin,xmax))`
+        positions of the walls that define the bounding box of the coordinates.
+    pairpotential_binedges : iterable, optional
+        bin edges corresponding to the values in `pairpotential. The default 
+        is None, which uses the bins defined by `rmin`, `rmax` and `dr`.
+    n_ins : int, optional
+        the number of test-particles to insert into each item in `coordinates`.
+        The default is 1000.
+    interpolate : bool, optional
+        whether to use linear interpolation for calculating the interaction of 
+        two particles using the values in `pairpotential`. The default is True.
+        If False, the nearest bin value is used.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
+    periodic_boundary : bool, optional
+        whether periodic boundary conditions are used. The default is False.
+    avoid_boundary : bool, optional
+        if True, all test-particles are inserted at least `rmax` away from any 
+        of the surfaces defined in `boundary` to avoid effects of the finite
+        volume of the bounding box. The default is False, which uses an 
+        analytical correction factor for missing volume of test-particles near 
+        the boundaries.
+    avoid_coordinates : bool, optional
+        whether to insert test-particles at least `rmin` away from the center 
+        of any of the 'real' coordinates in `coordinates`. The default is 
+        False.
+
+    Returns
+    -------
+    pair_correlation : numpy.array
+        values for the rdf / pair correlation function in each bin
+    counter : numpy.array
+        number of pair counts that contributed to the (mean) values in each bin
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
+    """
+
+    #assure array of arrays with first axis as dtype=object and rest floats
+    if type(coordinates)==list:#weird syntax but there's no prettier way
+        coordinates = np.array([None]+coordinates,dtype=object)[1:]
+    
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+            )
+    else:
+        raise TypeError(
+            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+        )
+    
+    #assure 3D array for coordinates
+    if coordinates.ndim == 2:
+        coordinates = coordinates[np.newaxis,:,:]
+
+    #check if rmax input and boundary are feasible for avoiding boundary
+    boundary = np.array(boundary)
+    if avoid_boundary and rmax >= min(boundary[:,1]-boundary[:,0])/2:
+        raise ValueError(
+            'rmax cannot be more than half the smallest box dimension when '+
+            'avoid_boundary=True, use rmax < {:}'.format(min(boundary[:,1]-boundary[:,0])/2)
+        )
+    
+    #check rmax and boundary for edge-handling in periodic boundary conditions
+    elif periodic_boundary:
+        if boundary[0,1]-boundary[0,0] == boundary[1,1]-boundary[1,0]:
+            boxlen = boundary[0,1]-boundary[0,0]
+            if rmax > boxlen*np.sqrt(2)/2:
+                raise ValueError(
+                    'rmax cannot be more than sqrt(2)/2 times the size of a '+
+                    'square bounding box when periodic_boundary=True, use '+
+                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(2)/2)
+                )
+        elif rmax > min(boundary[:,1]-boundary[:,0]):
+            raise NotImplementedError(
+                'rmax larger than half the smallest box dimension when '+
+                'periodic_boundary=True is only implemented for square boundaries'
+            )
+    
+    #check rmax and boundary for edge handling without periodic boundaries
+    else:
+        if rmax > max(boundary[:,1]-boundary[:,0])/2:
+            raise ValueError(
+                'rmax cannot be larger than half the largest dimension in '+
+                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
+            )
+    
+    #create bin edges and bin centres for r
+    rvals = np.arange(rmin,rmax+dr,dr)
+    rcent = rvals[:-1]+dr/2
+    nt = len(coordinates)
+    nr = len(rcent)
+    
+    #bin edges and centres for pairpotential
+    if type(pairpotential_binedges) == type(None):
+        pairpotential_binedges = rvals
+    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+    
+    #init function that returns energy from list of pairwise distances
+    if interpolate:#linearly interpolate pair potential between points
+        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
+                                         pairpotential)
+    else:#get pair potential from nearest bin (round r to bincenter)
+        from scipy.interpolate import interp1d    
+        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
+                           kind='nearest',bounds_error=False,
+                           fill_value='extrapolate')
+    
+    #define a reduced area for test-particles away from all boundaries
+    if avoid_boundary:
+        reduced_boundary = boundary.copy()
+        reduced_boundary[:,0] += rmax
+        reduced_boundary[:,1] -= rmax
+    
+    #initialize arrays to store values
+    counter = np.empty((nt,nr))
+    pair_correlation = np.empty((nt,nr))
+    
+    #loop over all timesteps / independent sets of coordiates
+    for i,coords in enumerate(coordinates):
+        
+        #generate new test-particle coordinates for each set
+        if avoid_coordinates and avoid_boundary:
+            trialparticles = _rand_coord_at_dist(reduced_boundary,coords,rmin,n=n_ins)
+        elif avoid_coordinates:
+            trialparticles = _rand_coord_at_dist(boundary,coords,rmin,n=n_ins)
+        elif avoid_boundary:
+            trialparticles = _rand_coord_in_box(reduced_boundary,n=n_ins)
+        else:
+            trialparticles = _rand_coord_in_box(boundary,n=n_ins)
+         
+        #init KDTree for fast pairfinding
+        if periodic_boundary:
+            coords -= boundary[:,0]#shift box to origin
+            tree = cKDTree(coords,boxsize=boundary[:,1]-boundary[:,0])
+        else:
+            tree = cKDTree(coords)
+        
+        #find all pairs with one particle from testparticles and one from coordinates
+        distances,_ = tree.query(trialparticles,k=len(coords),distance_upper_bound=rmax)
+        
+        #cKDTree pads rows with np.inf to get correct length, work with masked
+        #arrays to only work on finite values
+        mask = np.isfinite(distances) & (distances>0)
+        distances = np.ma.masked_array(distances,mask)
+        
+        #calculate total potential energy of insertion (psi) for each testparticle
+        #(row) by summing each pairwise potential energy u(r)
+        if avoid_boundary:
+            exp_psi = np.apply_along_axis(
+                lambda row: np.exp(-np.sum(pot_fun(row.data[row.mask]))),
+                1,
+                distances
+            )
+        else:
+            if periodic_boundary:
+                #calculate correction factor for each distance bin to account 
+                # for missing information
+                boundarycorr = _circle_ring_area_frac_periodic(
+                    rvals,
+                    min(boundary[:,1]-boundary[:,0])
+                )[np.newaxis,:]
+                
+            else:
+                #calculate correction factor for each testparticle for each dist bin
+                # to account for missing information around particles near boundary.
+                #boundary is shifted for coordinate system with origin in particle
+                boundarycorr = _circle_ring_area_fraction(
+                    rvals,
+                    boundary-trialparticles[:,:,np.newaxis]
+                )
+                
+            #sum pairwise energy per particle per distance bin, then correct
+            # each bin for missing volume, then sum and convert to probability 
+            # e^(-psi)
+            exp_psi = np.apply_along_axis(
+                lambda row: np.histogram(
+                    row.data[row.mask],
+                    bins=rvals,
+                    weights=pot_fun(row.data[row.mask])
+                    )[0],
+                1,
+                distances
+            )
+            
+            #calculate probability of testparticles
+            exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
+            
+        #calculate average probability of all testparticles
+        prob_tot = np.mean(exp_psi)
+        
+        #count how many pairs each particle contributes to each bin, apply
+        # boundary correction for correctly weighted average
+        prob_r = np.apply_along_axis(
+            lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
+        
+        #boundarycorrect probability counts for correct weighing
+        if not avoid_boundary:
+            prob_r /= boundarycorr 
         
         counts = prob_r.sum(axis=0)
         
@@ -467,10 +741,23 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #create bins
     rvals = np.arange(rmin,rmax+dr,dr)
     
+    #assure array of arrays with first axis as dtype=object and rest floats
+    if type(coordinates)==list:#weird syntax but there's no prettier way
+        coordinates = np.array([None]+coordinates,dtype=object)[1:]
+    
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+            )
+    else:
+        raise TypeError(
+            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+        )
+    
     #assure 3D array for coordinates
-    coordinates = np.array(coordinates,dtype=object)
     if coordinates.ndim == 2:
-        coordinates = coordinates[None,:,:]
+        coordinates = coordinates[np.newaxis,:,:]
     
     #set default step size
     if type(dr)==type(dr):
@@ -646,7 +933,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #check list of coordinates or only one coordinate set
     if coordinates.ndim == 2:
-        coordinates = coordinates[None,:,:]
+        coordinates = coordinates[np.newaxis,:,:]
     
     #set default step size
     if type(dr)==type(dr):
