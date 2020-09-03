@@ -259,7 +259,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         
         #boundarycorrect probability counts for correct weighing
         if not avoid_boundary:
-            prob_r /= boundarycorr 
+            prob_r = prob_r / boundarycorr 
         
         counts = prob_r.sum(axis=0)
         
@@ -512,7 +512,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
         
         #boundarycorrect probability counts for correct weighing
         if not avoid_boundary:
-            prob_r /= boundarycorr 
+            prob_r = prob_r / boundarycorr 
         
         counts = prob_r.sum(axis=0)
         
