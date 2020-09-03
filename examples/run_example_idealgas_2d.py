@@ -15,7 +15,7 @@ m = 100  #number of datasets
 #g(r)
 rmin = 0
 rmax = 5
-dr = 0.1
+dr = 0.05
 
 # create fake data
 boundary = np.array([[0,boxsize]]*2)
@@ -42,6 +42,7 @@ plt.plot(bincent,binvals,'-r',label='dist hist')
 plt.xlabel('r')
 plt.ylabel('g(r)')
 plt.xlim(rmin,rmax)
+plt.ylim(0,1.1)
 
 
 #%% run iterations
