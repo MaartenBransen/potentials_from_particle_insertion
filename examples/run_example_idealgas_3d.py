@@ -3,7 +3,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from potentials_from_particle_insertion import run_iteration,rdf_dist_hist_3d
-from potentials_from_particle_insertion.generate_coordinates import _rand_coord_in_box
+from potentials_from_particle_insertion.generate_coordinates import _rand_coord_in_box #only for generating fake data
 
 #%% input parameters
 
