@@ -869,8 +869,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True,
                      quiet=False):
     """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 2D coordinate sets. Provided for convenience. Edge correction based
-    on refs [1] and [2].
+    set of 2D coordinate sets. Provided for convenience. Edge correction is 
+    fully analytical for both periodic and nonperiodic boundary conditions.
 
     Parameters
     ----------
