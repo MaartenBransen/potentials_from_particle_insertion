@@ -8,8 +8,14 @@ m.bransen@uu.nl
 
 #external imports
 import numpy as np
-import numba as nb
 from scipy.spatial import cKDTree
+
+#check numba available
+try:
+    import numba as nb
+    _numba_available = True
+except ImportError:
+    _numba_available = False
 
 #internal imports
 from .generate_coordinates import _rand_coord_in_box,\
@@ -584,6 +590,14 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
     nt = len(coordinates)
     nr = len(rcent)
     
+    #check if numba is present
+    if use_numba:
+        if not _numba_available:
+            print('[WARNING] potentials_from_particle_insertion: numba not '+
+                  'found, falling back on pure python')
+            use_numba = False
+    
+    #set bin edges and centers
     if type(pairpotential_binedges) == type(None):
         pairpotential_binedges = rvals
     pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
@@ -663,18 +677,19 @@ def _calc_squared_dist(coordinates,trialparticle,rmax):
             distances.append(d)
     return distances
 
-@nb.njit()
-def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
-    """numba-compiled loop over coordinate pairs, returns pairwise distances"""
-    #naive implementation
-    distances = []
-    for i in range(len(coordinates)):
-        d = 0
-        for j in range(3):
-            d += (coordinates[i,j]-trialparticle[j])**2
-        if d <= rmax**2:
-            distances.append(d)
-    return distances
+if _numba_available:
+    @nb.njit()
+    def _calc_squared_dist_numba(coordinates,trialparticle,rmax):
+        """numba-compiled loop over coordinate pairs, returns pairwise distances"""
+        #naive implementation
+        distances = []
+        for i in range(len(coordinates)):
+            d = 0
+            for j in range(3):
+                d += (coordinates[i,j]-trialparticle[j])**2
+            if d <= rmax**2:
+                distances.append(d)
+        return distances
 
 
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
