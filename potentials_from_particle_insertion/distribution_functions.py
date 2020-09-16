@@ -200,7 +200,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
          
         #init KDTree for fast pairfinding
         if periodic_boundary:
-            coords -= boundary[:,0]#shift box to origin
+            coords = coords - boundary[:,0]#shift box to origin
             tree = cKDTree(coords,boxsize=boundary[:,1]-boundary[:,0])
         else:
             tree = cKDTree(coords)
@@ -817,7 +817,6 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         vol = np.product(boundary[:,1]-boundary[:,0])
         density = np.mean([len(coords)/vol for coords in coordinates])
     
-    
     #loop over all sets of coordinates
     bincounts = []
     for i,coords in enumerate(coordinates):
@@ -826,31 +825,39 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         if not quiet:
             print('\rcalculating distance histogram g(r) {:} of {:}'.format(i+1,len(coordinates)),end='')
         
-        #set up KDTree for fast neighbour finding
-        #shift box boundary corner to origin for periodic KDTree
         if periodic_boundary:
+            #set up KDTree for fast neighbour finding
+            #shift box boundary corner to origin for periodic KDTree
             tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
+            
+            #count number of particle pairs per bin directly
+            counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
+            
+            #optionally apply edge correction to each bin
+            if handle_edge:
+                if periodic_boundary:
+                    boundarycorr = _sphere_shell_vol_frac_periodic(
+                        rvals,
+                        min(boundary[:,1]-boundary[:,0])
+                    )
+                    counts = counts/boundarycorr
+            
+        #if not periodic_boundary
         else:
+            
+            #set up KDTree for fast neighbour finding
             tree = cKDTree(coords)
+            
+            if handle_edge:
+                #query tree for any neighbours up to rmax for each particle separately
+                dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
+            
+                #remove pairs with self, padded (infinite) values and anythin below rmin
+                dist = dist[:,1:]
+                mask = np.isfinite(dist) & (dist>=rmin)
         
-        #query tree for any neighbours up to rmax
-        dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
-        
-        #remove pairs with self, padded (infinite) values and anythin below rmin
-        dist = dist[:,1:]
-        mask = np.isfinite(dist) & (dist>=rmin)
-        
-        #when dealing with edges, histogram the distances per reference particle
-        #and apply correction factor for missing volume
-        if handle_edge:
-            if periodic_boundary:
-                boundarycorr = _sphere_shell_vol_frac_periodic(
-                    rvals,
-                    min(boundary[:,1]-boundary[:,0])
-                )
-                counts = np.histogram(dist[mask],bins=rvals)[0]/boundarycorr
-
-            else:
+                #when dealing with edges, histogram the distances per reference particle
+                #and apply correction factor for missing volume
                 dist = np.ma.masked_array(dist,mask)
                 counts = np.apply_along_axis(
                     lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
@@ -863,13 +870,14 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     )
                 counts = np.sum(counts/boundarycorr,axis=0)
         
-        #otherwise just histogram as a 1d list of distances
-        else:
-            counts = np.histogram(dist[mask],bins=rvals)[0]
+            #otherwise calculate neighbours per bin directly
+            else:
+                counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         
         #normalize and add to overall list
+        #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
-    
+        
     #newline
     if not quiet:
         print()
