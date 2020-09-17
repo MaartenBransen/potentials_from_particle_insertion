@@ -840,12 +840,11 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             
             #optionally apply edge correction to each bin
             if handle_edge:
-                if periodic_boundary:
-                    boundarycorr = _sphere_shell_vol_frac_periodic(
-                        rvals,
-                        min(boundary[:,1]-boundary[:,0])
-                    )
-                    counts = counts/boundarycorr
+                boundarycorr = _sphere_shell_vol_frac_periodic(
+                    rvals,
+                    min(boundary[:,1]-boundary[:,0])
+                )
+                counts = counts/boundarycorr
             
         #if not periodic_boundary
         else:
@@ -1016,32 +1015,38 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         if not quiet:
             print('\rcalculating distance histogram g(r) {:d} of {:d}'.format(i+1,len(coordinates)),end='')
         
-        #set up KDTree for fast neighbour finding
-        #shift box boundary corner to origin for periodic KDTree
+        #in case of periodic boundary conditions
         if periodic_boundary:
+            #set up KDTree for fast neighbour finding
+            #shift box boundary corner to origin for periodic KDTree
             tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
-        else:
-            tree = cKDTree(coords)
-        
-        #query tree for any neighbours up to rmax
-        dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
-        
-        #remove pairs with self, padded (infinite) values and anythin below rmin
-        dist = dist[:,1:]
-        mask = np.isfinite(dist) & (dist>=rmin)
-        
-        #edge handling
-        if handle_edge:
             
-            #in periodic case apply on a per distance bin (column) basis
-            if periodic_boundary:
+            #count number of particle pairs per bin directly
+            counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
+            
+            #optionally apply edge correction for distances beyond boxsize/2
+            if handle_edge:
+                
                 boundarycorr = _circle_ring_area_frac_periodic(
                     rvals,
                     boundary[0,1]-boundary[0,0]
                 )
-                counts = np.histogram(dist[mask],bins=rvals)[0]/boundarycorr
-
-            else:
+                counts = counts/boundarycorr
+        
+        #in nonperiodic boundary coditions
+        else:
+            
+            #set up and query tree for fast neighbor finding
+            tree = cKDTree(coords)
+            
+            #query particles individually for per-particle edge handling
+            if handle_edge:
+                dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
+                
+                #remove pairs with self, padded (infinite) values and anythin below rmin
+                dist = dist[:,1:]
+                mask = np.isfinite(dist) & (dist>=rmin)
+                
                 #histogram the distances per reference particle and apply correction factor
                 #for missing volume to each particle (each row) and each distance bin separately
                 if _numba_available:
@@ -1055,10 +1060,10 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     boundary-coords[:,:,np.newaxis]
                     )
                 counts = np.sum(counts/boundarycorr,axis=0)
-        
-        #otherwise just histogram as a 1d list of distances
-        else:
-            counts = np.histogram(dist[mask],bins=rvals)[0]
+                
+            #otherwise find and bin pairs directly
+            else:
+                counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         
         #normalize and add to overall list
         bincounts.append(counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / (density*len(coords)))
