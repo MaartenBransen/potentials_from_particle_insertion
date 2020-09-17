@@ -24,6 +24,19 @@ from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic
     _circle_ring_area_fraction,_circle_ring_area_frac_periodic
 
 #defs
+if _numba_available:
+    @nb.njit()
+    def _apply_hist_nb(distances,mask,rvals):
+        """numba overloaded analogue of np.apply_along_axis(np.histogram(),1)"""
+        n,r = len(distances),len(rvals)-1
+        binned_array = np.empty((n,r),dtype=np.float64)
+        
+        for i in range(n):
+            dist = distances[i][mask[i]]
+            binned_array[i] = np.histogram(dist,bins=rvals)[0]
+        
+        return binned_array
+
 def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,periodic_boundary=False,
@@ -167,8 +180,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     
     #init function that returns energy from list of pairwise distances
     if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
+        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
     else:#get pair potential from nearest bin (round r to bincenter)
         from scipy.interpolate import interp1d    
         pot_fun = interp1d(pairpotential_bincenter,pairpotential,
@@ -211,16 +223,14 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
         mask = np.isfinite(distances) & (distances>0)
-        distances = np.ma.masked_array(distances,mask)
         
         #calculate total potential energy of insertion (psi) for each testparticle
         #(row) by summing each pairwise potential energy u(r)
         if avoid_boundary:
-            exp_psi = np.apply_along_axis(
-                lambda row: np.exp(-np.sum(pot_fun(row.data[row.mask]))),
-                1,
-                distances
-            )
+            exp_psi = np.empty(n_ins)
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                exp_psi[j] = np.exp(-np.sum(pot_fun(row[msk])))
+
         else:
             if periodic_boundary:
                 #calculate correction factor for each distance bin to account 
@@ -238,19 +248,13 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                     rvals,
                     boundary-trialparticles[:,:,np.newaxis]
                 )
-                
             #sum pairwise energy per particle per distance bin, then correct
             # each bin for missing volume, then sum and convert to probability 
             # e^(-psi)
-            exp_psi = np.apply_along_axis(
-                lambda row: np.histogram(
-                    row.data[row.mask],
-                    bins=rvals,
-                    weights=pot_fun(row.data[row.mask])
-                    )[0],
-                1,
-                distances
-            )
+            exp_psi = np.empty((n_ins,nr))
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                dist = row[msk]
+                exp_psi[j] = np.histogram(dist,bins=rvals,weights=pot_fun(dist))[0]
             
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
@@ -258,10 +262,13 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         #calculate average probability of all testparticles
         prob_tot = np.mean(exp_psi)
         
-        #count how many pairs each particle contributes to each bin, apply
-        # boundary correction for correctly weighted average
-        prob_r = np.apply_along_axis(
-            lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
+        #count how many pairs each particle contributes to each bin
+        if _numba_available:
+            prob_r = _apply_hist_nb(distances,mask,rvals)
+        else:
+            prob_r = np.empty((n_ins,nr))
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
         
         #boundarycorrect probability counts for correct weighing
         if not avoid_boundary:
@@ -284,6 +291,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     pair_correlation[counter==0] = 0
     
     return pair_correlation,counter
+
 
 def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
@@ -469,11 +477,10 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
         #calculate total potential energy of insertion (psi) for each testparticle
         #(row) by summing each pairwise potential energy u(r)
         if avoid_boundary:
-            exp_psi = np.apply_along_axis(
-                lambda row: np.exp(-np.sum(pot_fun(row.data[row.mask]))),
-                1,
-                distances
-            )
+            exp_psi = np.empty(n_ins)
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                exp_psi[j] = np.exp(-np.sum(pot_fun(row[msk])))
+        
         else:
             if periodic_boundary:
                 #calculate correction factor for each distance bin to account 
@@ -495,15 +502,10 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
             #sum pairwise energy per particle per distance bin, then correct
             # each bin for missing volume, then sum and convert to probability 
             # e^(-psi)
-            exp_psi = np.apply_along_axis(
-                lambda row: np.histogram(
-                    row.data[row.mask],
-                    bins=rvals,
-                    weights=pot_fun(row.data[row.mask])
-                    )[0],
-                1,
-                distances
-            )
+            exp_psi = np.empty((n_ins,nr))
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                dist = row[msk]
+                exp_psi[j] = np.histogram(dist,bins=rvals,weights=pot_fun(dist))[0]
             
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
@@ -511,10 +513,13 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
         #calculate average probability of all testparticles
         prob_tot = np.mean(exp_psi)
         
-        #count how many pairs each particle contributes to each bin, apply
-        # boundary correction for correctly weighted average
-        prob_r = np.apply_along_axis(
-            lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],1,distances)
+        #count how many pairs each particle contributes to each bin
+        if _numba_available:
+            prob_r = _apply_hist_nb(distances,mask,rvals)
+        else:
+            prob_r = np.empty((n_ins,nr))
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
         
         #boundarycorrect probability counts for correct weighing
         if not avoid_boundary:
@@ -857,13 +862,14 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 mask = np.isfinite(dist) & (dist>=rmin)
         
                 #when dealing with edges, histogram the distances per reference particle
-                #and apply correction factor for missing volume
-                dist = np.ma.masked_array(dist,mask)
-                counts = np.apply_along_axis(
-                    lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
-                    1,
-                    dist
-                    )
+                #and apply correction factor for missing volume to each particle (each row)
+                if _numba_available:
+                    counts = _apply_hist_nb(dist,mask,rvals)
+                else:
+                    counts = np.zeros((len(dist),len(rvals)-1))
+                    for j,(row,msk) in enumerate(zip(dist,mask)):
+                        counts[j] = np.histogram(row[msk],bins=rvals)[0]
+
                 boundarycorr=_sphere_shell_vol_fraction(
                     rvals,
                     boundary-coords[:,:,np.newaxis]
@@ -1024,9 +1030,10 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         dist = dist[:,1:]
         mask = np.isfinite(dist) & (dist>=rmin)
         
-        #when dealing with edges, histogram the distances per reference particle
-        #and apply correction factor for missing volume
+        #edge handling
         if handle_edge:
+            
+            #in periodic case apply on a per distance bin (column) basis
             if periodic_boundary:
                 boundarycorr = _circle_ring_area_frac_periodic(
                     rvals,
@@ -1035,12 +1042,14 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 counts = np.histogram(dist[mask],bins=rvals)[0]/boundarycorr
 
             else:
-                dist = np.ma.masked_array(dist,mask)
-                counts = np.apply_along_axis(
-                    lambda row: np.histogram(row.data[row.mask],bins=rvals)[0],
-                    1,
-                    dist
-                    )
+                #histogram the distances per reference particle and apply correction factor
+                #for missing volume to each particle (each row) and each distance bin separately
+                if _numba_available:
+                    counts = _apply_hist_nb(dist,mask,rvals)
+                else:
+                    counts = np.zeros((len(dist),len(rvals)-1))
+                    for j,(row,msk) in enumerate(zip(dist,mask)):
+                        counts[j] = np.histogram(row[msk],bins=rvals)[0]
                 boundarycorr=_circle_ring_area_fraction(
                     rvals,
                     boundary-coords[:,:,np.newaxis]
