@@ -7,6 +7,7 @@ m.bransen@uu.nl
 
 #external imports
 import numpy as np
+from scipy.optimize import curve_fit
 
 #internal imports
 from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_binned_2d
@@ -164,5 +165,139 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
             break
         
         i += 1
+    
+    return chi_squared,pairpotential,paircorrelation,counters
+
+#defs
+def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
+                             potential_func,initial_guess=None,fit_bounds=None,
+                             rmin=0,rmax=20,dr=0.5,convergence_tol=1e-5,
+                             max_iterations=100,zero_clip=1e-20,regulate=False,
+                             **kwargs):
+    """
+    Run the algorithm to solve for the pairwise potential that most accurately
+    reproduces the radial distribution function using test-particle insertion,
+    as described in ref. [1]. 
+
+    Parameters
+    ----------
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]` or 
+        `[y,x]` in case of 2D data. Each set of coordinates is not required to 
+        have the same number of particles but all stacks must share the same 
+        bounding box as given by `boundary`, and all coordinates must be within
+        this bounding box.
+    pair_correlation_func : list of float
+        bin values for the true pair correlation function that the algorithm 
+        will try to match iteratively.
+    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
+        positions of the walls that define the bounding box of the coordinates.
+        Number of dimensions must match coordinates.
+    initial_guess : list of float, optional
+        Initial guess for the particle potential on the 0th iteration. The 
+        default is None which gives 0 in each bin.
+    rmin : float, optional
+        left edge of the smallest bin in interparticle distance r to consider.
+        The default is 0.
+    rmax : float, optional
+        Right edge of the largest bin in interparticle distance r to consider.
+        The default is 20.
+    dr : float, optional
+        Stepsize or bin width in interparticle distance r. The default is 0.5.
+    convergence_tol : float, optional
+        target value for χ², if it dips below this value the iteration is 
+        considered to be converged and ended. The default is `1e-5`.
+    max_iterations : int, optional
+        Maximum number of iterations after which the algorithm is ended. The
+        default is 100.
+    zero_clip : float, optional
+        values below the value of zero-clip are set to this value to avoid
+        devision by zero errors. The default is `1e-20`.
+    regulate : bool, optional
+        if True, use regularization to more gently nudge towards the input g(r)
+        at the cost of slower convergence. Experimental option. The default is
+        `False`.
+    **kwargs : key=value
+        Additional keyword arguments are passed on to `rdf_insertion_binned_2d`
+        or `rdf_insertion_binned_3d`
+
+    Returns
+    -------
+    χ² : list of float
+        summed squared error in the pair correlation function for each 
+        iteration
+    pairpotential : list of list of float
+        the values for the pair potential in each bin for each iteration
+    paircorrelation : list of list of float
+        the values for the pair correlation function from test-particle
+        insertion for each iteration
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
+    See also
+    --------
+    rdf_insertion_binned_2d : 2D routine for g(r) from test-particle insertion
+    rdf_insertion_binned_3d : 3D routine for g(r) from test-particle insertion
+    """
+    
+    #create values for bin edges and centres of r
+    rvals = np.arange(rmin,rmax+dr,dr)
+    rcent = rvals[:-1]+dr/2
+    
+    #check inputs
+    if len(pair_correlation_func) != len(rcent):
+        raise ValueError('lenght pair_correlation_func does not match rmax and dr')
+    
+    #check dimensionality, select appropriate rdf_insertion routine
+    if len(boundary) == 2:
+        rdf_insertion_binned = rdf_insertion_binned_2d
+    elif len(boundary) == 3:
+        rdf_insertion_binned = rdf_insertion_binned_3d
+    else:
+        raise ValueError('data and boundaries must be 2- or 3-dimensional')
+    
+    #set input pair correlation to zero-clip to avoid devision by 0 errors
+    pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
+    
+    #generate fitfuntion from potential function and insertion routine
+    pair_correlations = []
+    fit_params = []
+    def fitfun(r,*fitargs):
+        #calculate pairpotential function and call insertion routine
+        pairpotential = lambda dist: potential_func(dist,*fitargs)
+        pair_correlation,_ = rdf_insertion_binned(coordinates, pairpotential,
+                                                rmax, dr, boundary,rmin=rmin,
+                                                **kwargs)
+        #avoid devision by zero errors
+        pair_correlation[pair_correlation<zero_clip]=zero_clip
+        
+        #write ouput of each iteration to lists and print
+        pair_correlations.append(pair_correlation)
+        fit_params.append(list(*fitargs))
+        print('test')
+        
+        return pair_correlation
+    
+    #fit
+    fit,cov = curve_fit(
+        fitfun, 
+        rcent, 
+        pair_correlation_func,
+        p0=initial_guess,
+        sigma=1/np.sqrt(pair_correlation_func),
+        bounds = fit_bounds,
+        max_nfev=max_iterations,
+        ftol=convergence_tol,
+    )
+    
+    
     
     return chi_squared,pairpotential,paircorrelation,counters

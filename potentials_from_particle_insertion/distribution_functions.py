@@ -59,9 +59,11 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         set of coordinates is not required to have the same number of particles
         but all stacks must share the same  bounding box as given by 
         `boundary`, and all coordinates must be within this bounding box.
-    pairpotential : iterable
+    pairpotential : iterable or callable
         list of values for the pairwise interaction potential. Must have length
-        of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+        of `len(pairpotential_binedges)-1` and be in units of thermal energy 
+        kT. Alternatively, any callable (function) which takes only a numpy 
+        array of pairwise distances and returns the pairpotential can be given.
     rmax : float
         cut-off radius for the pairwise distance (right edge of last bin).
     dr : float
@@ -70,14 +72,16 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         positions of the walls that define the bounding box of the coordinates.
     pairpotential_binedges : iterable, optional
         bin edges corresponding to the values in `pairpotential. The default 
-        is None, which uses the bins defined by `rmin`, `rmax` and `dr`.
+        is None, which uses the bins defined by `rmin`, `rmax` and `dr`. This 
+        parameter is ignored if pairpotential is a callable (function)
     n_ins : int, optional
         the number of test-particles to insert into each item in `coordinates`.
         The default is 1000.
     interpolate : bool, optional
         whether to use linear interpolation for calculating the interaction of 
         two particles using the values in `pairpotential`. The default is True.
-        If False, the nearest bin value is used.
+        If False, the nearest bin value is used. This parameter is ignored if 
+        pairpotential is a callable (function).
     rmin : float, optional
         lower cut-off for the pairwise distance. The default is 0.
     periodic_boundary : bool, optional
@@ -173,19 +177,24 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     nt = len(coordinates)
     nr = len(rcent)
     
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if type(pairpotential_binedges) == type(None):
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        if interpolate:#linearly interpolate pair potential between points
+            pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
+        else:#get pair potential from nearest bin (round r to bincenter)
+            from scipy.interpolate import interp1d    
+            pot_fun = interp1d(pairpotential_bincenter,pairpotential,
+                               kind='nearest',bounds_error=False,
+                               fill_value='extrapolate')
     
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
