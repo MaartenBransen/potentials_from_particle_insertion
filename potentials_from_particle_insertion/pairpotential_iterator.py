@@ -256,6 +256,9 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
     if len(pair_correlation_func) != len(rcent):
         raise ValueError('lenght pair_correlation_func does not match rmax and dr')
     
+    if type(fit_bounds) == type(None):
+        fit_bounds = (-np.inf,np.inf)
+    
     #check dimensionality, select appropriate rdf_insertion routine
     if len(boundary) == 2:
         rdf_insertion_binned = rdf_insertion_binned_2d
@@ -267,37 +270,100 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
     #set input pair correlation to zero-clip to avoid devision by 0 errors
     pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
     
-    #generate fitfuntion from potential function and insertion routine
-    pair_correlations = []
+    #initialize lists to write results to upon fitfunction call (to get 
+    #intermediate results from scipy.optimize.curve_fit)
+    paircorrelations = []
+    pairpotentials = []
     fit_params = []
+    chi_squared = []
+    counters = []
+    
+    def errorfunc(fitargs):
+        #calculate pairpotential function and call insertion routine
+        pairpotential = lambda dist: potential_func(dist,*fitargs)
+        newpaircorrelation,c = rdf_insertion_binned(coordinates, pairpotential,
+                                                rmax, dr, boundary,rmin=rmin,
+                                                **kwargs)
+        
+        #avoid devision by zero errors
+        newpaircorrelation[newpaircorrelation<zero_clip]=zero_clip
+        
+        
+        #calculate error
+        error = np.mean((newpaircorrelation-pair_correlation_func)**2)
+        
+        #write ouput of each iteration to lists upon fitfunction call
+        paircorrelations.append(newpaircorrelation)
+        pairpotentials.append(pairpotential)
+        fit_params.append([*fitargs])
+        chi_squared.append(error)
+        counters.append(c)
+        
+        #print update
+        print('iteration {:}, χ²={:4g}'.format(len(paircorrelations)-1,chi_squared[-1]))
+        
+        #return -np.log(newpaircorrelation)
+        return error
+    
+    from scipy.optimize import minimize
+    
+    result = minimize(
+        errorfunc,
+        initial_guess,
+        bounds = [bound for bound in zip(fit_bounds[0],fit_bounds[1])],
+        options = {'disp':True}
+    )
+
+    return chi_squared,pairpotentials,fit_params,paircorrelations,counters
+    
+    
+'''
+    #generate fitfuntion from potential function and insertion routine
     def fitfun(r,*fitargs):
         #calculate pairpotential function and call insertion routine
         pairpotential = lambda dist: potential_func(dist,*fitargs)
-        pair_correlation,_ = rdf_insertion_binned(coordinates, pairpotential,
+        newpaircorrelation,c = rdf_insertion_binned(coordinates, pairpotential(r),
                                                 rmax, dr, boundary,rmin=rmin,
                                                 **kwargs)
+        
         #avoid devision by zero errors
-        pair_correlation[pair_correlation<zero_clip]=zero_clip
+        newpaircorrelation[newpaircorrelation<zero_clip]=zero_clip
         
-        #write ouput of each iteration to lists and print
-        pair_correlations.append(pair_correlation)
-        fit_params.append(list(*fitargs))
-        print('test')
         
-        return pair_correlation
+        #calculate error
+        error = np.mean((newpaircorrelation-pair_correlation_func)**2)
+        
+        #write ouput of each iteration to lists upon fitfunction call
+        paircorrelations.append(newpaircorrelation)
+        pairpotentials.append(pairpotential)
+        fit_params.append([*fitargs])
+        chi_squared.append(error)
+        counters.append(c)
+        
+        #print update
+        print('iteration {:}, χ²={:4g}'.format(len(paircorrelations)-1,chi_squared[-1]))
+        
+        return -np.log(newpaircorrelation)
+        #return error
     
     #fit
-    fit,cov = curve_fit(
-        fitfun, 
-        rcent, 
-        pair_correlation_func,
-        p0=initial_guess,
-        sigma=1/np.sqrt(pair_correlation_func),
-        bounds = fit_bounds,
-        max_nfev=max_iterations,
-        ftol=convergence_tol,
-    )
-    
-    
-    
-    return chi_squared,pairpotential,paircorrelation,counters
+    try:
+        fit,cov = curve_fit(
+            fitfun, 
+            rcent, 
+            -np.log(pair_correlation_func),
+            p0=initial_guess,
+            sigma=1/np.sqrt(pair_correlation_func),
+            bounds = fit_bounds,
+            jac='2-point',
+            #method='dogbox',
+            #max_nfev=max_iterations,
+            xtol=None,
+            gtol=None,
+            ftol=convergence_tol,
+            verbose=2,
+        )
+
+    finally:
+        return chi_squared,pairpotentials,fit_params,paircorrelations,counters
+    '''
