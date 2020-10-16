@@ -64,8 +64,7 @@ with plt.rc_context(params):
     plt.ylabel('g(r)')
     plt.xlim(rmin,rmax)
     plt.ylim(0,1.1)
-    plt.show()
-
+plt.show()
 
 #%% run iterations
 error,potential,fitparams,rdf,counts = run_iterator_fitfunction(
@@ -100,8 +99,7 @@ with plt.rc_context(params):
     plt.xlabel('r ($\mathrm{\mu m}$)')
     plt.ylabel('g(r)')
     plt.tight_layout()
-    plt.show()
-
+    
 #plot u(r) for all iterations on top of eachother
 plotx = np.linspace(rmin,rmax,200)
 with plt.rc_context(params):
@@ -122,7 +120,6 @@ with plt.rc_context(params):
     plt.xlabel('iteration step')
     plt.ylabel('χ²')
     plt.tight_layout()
-    plt.show()
 
 #plot distance histogram and last iteration together
 with plt.rc_context(params):
@@ -135,7 +132,6 @@ with plt.rc_context(params):
     plt.xlim(rmin,rmax)
     plt.legend(frameon=False)
     plt.tight_layout()
-    plt.show()
 
 #plot u(r) of last iteration
 with plt.rc_context(params):
@@ -146,4 +142,5 @@ with plt.rc_context(params):
     plt.ylabel('$u(r)$ $(k_B T)$')
     plt.xlim([rmin,rmax])
     plt.tight_layout()
-    plt.show()
+    
+plt.show()
