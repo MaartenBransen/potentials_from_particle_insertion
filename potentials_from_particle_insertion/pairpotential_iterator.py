@@ -172,8 +172,8 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
 def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
                              potential_func,initial_guess=None,fit_bounds=None,
                              rmin=0,rmax=20,dr=0.5,convergence_tol=1e-5,
-                             max_iterations=100,zero_clip=1e-20,regulate=False,
-                             **kwargs):
+                             max_iterations=100,max_func_evals=100,
+                             zero_clip=1e-20,**kwargs):
     """
     Run the algorithm to solve for the pairwise potential that most accurately
     reproduces the radial distribution function using test-particle insertion,
@@ -278,6 +278,7 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
     chi_squared = []
     counters = []
     
+    '''
     def errorfunc(fitargs):
         #calculate pairpotential function and call insertion routine
         pairpotential = lambda dist: potential_func(dist,*fitargs)
@@ -317,13 +318,18 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
     return chi_squared,pairpotentials,fit_params,paircorrelations,counters
     
     
-'''
+    '''
     #generate fitfuntion from potential function and insertion routine
     def fitfun(r,*fitargs):
+        
+        #check max iterations
+        if len(paircorrelations)>=max_func_evals:
+            raise RuntimeError('The maximum number of function evaluations is reached')
         #calculate pairpotential function and call insertion routine
         pairpotential = lambda dist: potential_func(dist,*fitargs)
         newpaircorrelation,c = rdf_insertion_binned(coordinates, pairpotential(r),
                                                 rmax, dr, boundary,rmin=rmin,
+                                                insert_grid=True,
                                                 **kwargs)
         
         #avoid devision by zero errors
@@ -341,9 +347,9 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
         counters.append(c)
         
         #print update
-        print('iteration {:}, χ²={:4g}'.format(len(paircorrelations)-1,chi_squared[-1]))
+        print('function evaluation {:}, χ²={:4g}'.format(len(paircorrelations)-1,chi_squared[-1]))
         
-        return -np.log(newpaircorrelation)
+        return newpaircorrelation
         #return error
     
     #fit
@@ -351,19 +357,19 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
         fit,cov = curve_fit(
             fitfun, 
             rcent, 
-            -np.log(pair_correlation_func),
+            pair_correlation_func,
             p0=initial_guess,
             sigma=1/np.sqrt(pair_correlation_func),
             bounds = fit_bounds,
             jac='2-point',
-            #method='dogbox',
-            #max_nfev=max_iterations,
+            method='trf',
+            max_nfev=max_iterations,
             xtol=None,
             gtol=None,
             ftol=convergence_tol,
             verbose=2,
         )
-
-    finally:
-        return chi_squared,pairpotentials,fit_params,paircorrelations,counters
-    '''
+    except RuntimeError:
+        print('max_iterations reached')
+    
+    return chi_squared,pairpotentials,fit_params,paircorrelations,counters
