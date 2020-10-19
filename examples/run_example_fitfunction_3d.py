@@ -28,8 +28,8 @@ m = 100  #number of datasets
 
 #g(r)
 rmin = 0
-rmax = 3
-dr = 0.2
+rmax = 5
+dr = 0.1
 
 # create fake data
 boundary = np.array([[0,boxsize]]*3)
@@ -75,11 +75,11 @@ error,potential,fitparams,rdf,counts = run_iterator_fitfunction(
     rmin=rmin,
     rmax=rmax,
     dr=dr,
-    initial_guess=[0,0.3],
+    initial_guess=[-0.1,0.3],
     fit_bounds = [[-np.inf,0],[0,np.inf]],
-    max_iterations=5,
+    max_iterations=10,
     convergence_tol=1e-6,
-    n_ins=500,
+    n_ins=1000,
     #regulate=True,
     periodic_boundary=False,
 )
@@ -117,7 +117,7 @@ with plt.rc_context(params):
     plt.plot(range(1,len(error)+1),error)
     plt.xscale('log')
     plt.yscale('log')
-    plt.xlabel('iteration step')
+    plt.xlabel('function evaluation')
     plt.ylabel('χ²')
     plt.tight_layout()
 
