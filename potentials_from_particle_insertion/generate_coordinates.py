@@ -118,3 +118,33 @@ def _rand_coord_on_sphere(npoints=1,radius=1,origin=[0,0,0]):
     vec = radius * vec / np.linalg.norm(vec, axis=0)
     coord = np.array([list(origin)]*npoints)+vec.T
     return coord
+
+def _coord_grid_in_box(boundary,n=1):
+    """
+    generate approximately n coordinates on a uniformly distributed grid in the
+    box defined by boundary, excluding values at the boundaries. n is 
+    approximate since an integer number of equally sized steps along each 
+    dimension is needed
+
+    Parameters
+    ----------
+    boundary : np.array of form ((zmin,zmax),(ymin,ymax),(xmin,xmax))
+        The half-open interval in which to generate the coordinates, can have
+        any number of dimensions
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*ndim
+        Randomly generated coordinates in box of ndim dimension
+
+    """
+    edge_lengths = boundary[:,1]-boundary[:,0]
+    n_per_dim = np.round(n**(1/3)*edge_lengths/np.product(edge_lengths)**(1/3)).astype(np.uint8)
+    n_per_dim[n_per_dim<1] = 1
+    steps = [np.linspace(dmin,dmax,dn+1,endpoint=False)[1:] 
+             for dmin,dmax,dn in zip(boundary[:,0],boundary[:,1],n_per_dim)]
+    return np.transpose([dim.ravel() for dim in np.meshgrid(*steps)])
+    
+    

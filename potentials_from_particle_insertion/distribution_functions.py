@@ -19,7 +19,7 @@ except ImportError:
 
 #internal imports
 from .generate_coordinates import _rand_coord_in_box,\
-    _rand_coord_at_dist,_rand_coord_on_sphere
+    _rand_coord_at_dist,_rand_coord_on_sphere,_coord_grid_in_box
 from .geometry import _sphere_shell_vol_fraction,_sphere_shell_vol_frac_periodic,\
     _circle_ring_area_fraction,_circle_ring_area_frac_periodic
 
@@ -40,6 +40,7 @@ if _numba_available:
 def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,periodic_boundary=False,
+                            ins_coords=None,insert_grid=False,
                             avoid_boundary=False,avoid_coordinates=False):
     """Calculate g(r) from insertion of test-particles into sets of existing
     3D coordinates, averaged over bins of width dr, and based on the pairwise 
@@ -202,6 +203,9 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         reduced_boundary[:,0] += rmax
         reduced_boundary[:,1] -= rmax
     
+    if insert_grid:
+        base_n_ins = n_ins
+    
     #initialize arrays to store values
     counter = np.empty((nt,nr))
     pair_correlation = np.empty((nt,nr))
@@ -209,8 +213,17 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     #loop over all timesteps / independent sets of coordiates
     for i,coords in enumerate(coordinates):
         
-        #generate new test-particle coordinates for each set
-        if avoid_coordinates and avoid_boundary:
+        #use input coords or generate new test-particle coordinates for each set
+        if type(ins_coords) != type(None):
+            trialparticles = ins_coords
+            n_ins = len(ins_coords)
+        elif insert_grid and avoid_boundary:
+            trialparticles = _coord_grid_in_box(reduced_boundary,n=base_n_ins)
+            n_ins = len(trialparticles)
+        elif insert_grid:
+            trialparticles = _coord_grid_in_box(boundary,n=base_n_ins)
+            n_ins = len(trialparticles)
+        elif avoid_coordinates and avoid_boundary:
             trialparticles = _rand_coord_at_dist(reduced_boundary,coords,rmin,n=n_ins)
         elif avoid_coordinates:
             trialparticles = _rand_coord_at_dist(boundary,coords,rmin,n=n_ins)
