@@ -103,9 +103,10 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         initial_guess = np.zeros(len(rcent))
     
     #check dimensionality, select appropriate rdf_insertion routine
-    if len(boundary) == 2:
+    boundary = np.array(boundary)
+    if boundary.shape[-2] == 2:
         rdf_insertion_binned = rdf_insertion_binned_2d
-    elif len(boundary) == 3:
+    elif boundary.shape[-2] == 3:
         rdf_insertion_binned = rdf_insertion_binned_3d
     else:
         raise ValueError('data and boundaries must be 2- or 3-dimensional')
@@ -260,9 +261,9 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,boundary,
         fit_bounds = (-np.inf,np.inf)
     
     #check dimensionality, select appropriate rdf_insertion routine
-    if len(boundary) == 2:
+    if boundary.shape[-2] == 2:
         rdf_insertion_binned = rdf_insertion_binned_2d
-    elif len(boundary) == 3:
+    elif boundary.shape[-2] == 3:
         rdf_insertion_binned = rdf_insertion_binned_3d
     else:
         raise ValueError('data and boundaries must be 2- or 3-dimensional')

@@ -58,8 +58,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         independent set of coordinates (e.g. one z-stack, a time step from a 
         video, etc.), with each element of the array of form  `[z,y,x]`. Each 
         set of coordinates is not required to have the same number of particles
-        but all stacks must share the same  bounding box as given by 
-        `boundary`, and all coordinates must be within this bounding box.
+        but all coordinates must be within the bounding box(es) given in 
+        `boundary`.
     pairpotential : iterable or callable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy 
@@ -70,7 +70,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     dr : float
         bin width of the pairwise distance bins.
     boundary : array-like of form `((zmin,zmax),(ymin,ymax),(xmin,xmax))`
-        positions of the walls that define the bounding box of the coordinates.
+        Positions of the walls that define the bounding box of the coordinates,
+        given as a single array-like for a shared set of boundaries for all 
+        coordinates, or an list-like of such array-likes with the same length 
+        as `coordinates` for a separate set of boundaries for each.
     pairpotential_binedges : iterable, optional
         bin edges corresponding to the values in `pairpotential. The default 
         is None, which uses the bins defined by `rmin`, `rmax` and `dr`. This 
@@ -140,37 +143,42 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     if coordinates.ndim == 2:
         coordinates = coordinates[np.newaxis,:,:]
 
-    #check if rmax input and boundary are feasible for avoiding boundary
+    #check if single boundary or boundary per dataset is given
     boundary = np.array(boundary)
-    if avoid_boundary and rmax >= min(boundary[:,1]-boundary[:,0])/2:
-        raise ValueError(
-            'rmax cannot be more than half the smallest box dimension when '+
-            'avoid_boundary=True, use rmax < {:}'.format(min(boundary[:,1]-boundary[:,0])/2)
-        )
-    
-    #check rmax and boundary for edge-handling in periodic boundary conditions
-    elif periodic_boundary:
-        if min(boundary[:,1]-boundary[:,0])==max(boundary[:,1]-boundary[:,0]):
-            boxlen = boundary[0,1]-boundary[0,0]
-            if rmax > boxlen*np.sqrt(3)/2:
-                raise ValueError(
-                    'rmax cannot be more than sqrt(3)/2 times the size of a '+
-                    'cubic bounding box when periodic_boundary=True, use '+
-                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(3)/2)
-                )
-        elif rmax > min(boundary[:,1]-boundary[:,0]):
-            raise NotImplementedError(
-                'rmax larger than half the smallest box dimension when '+
-                'periodic_boundary=True is only implemented for cubic boundaries'
-            )
-    
-    #check rmax and boundary for edge handling without periodic boundaries
-    else:
-        if rmax > max(boundary[:,1]-boundary[:,0])/2:
+    if boundary.ndim == 2:
+        boundary = np.broadcast_to(boundary,(len(coordinates),3,2))
+        
+    #check if rmax input and boundary are feasible for avoiding boundary
+    for bound in boundary:
+        if avoid_boundary and rmax >= min(bound[:,1]-bound[:,0])/2:
             raise ValueError(
-                'rmax cannot be larger than half the largest dimension in '+
-                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
-            )
+                'rmax cannot be more than half the smallest box dimension when '+
+                'avoid_boundary=True, use rmax < {:}'.format(min(bound[:,1]-bound[:,0])/2)
+                )
+    
+        #check rmax and boundary for edge-handling in periodic boundary conditions
+        elif periodic_boundary:
+            if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
+                boxlen = bound[0,1]-bound[0,0]
+                if rmax > boxlen*np.sqrt(3)/2:
+                    raise ValueError(
+                        'rmax cannot be more than sqrt(3)/2 times the size of a '+
+                        'cubic bounding box when periodic_boundary=True, use '+
+                        'rmax < {:}'.format((bound[0,1]-bound[0,0])*np.sqrt(3)/2)
+                    )
+            elif rmax > min(bound[:,1]-bound[:,0]):
+                raise NotImplementedError(
+                    'rmax larger than half the smallest box dimension when '+
+                    'periodic_boundary=True is only implemented for cubic boundaries'
+                )
+    
+        #check rmax and boundary for edge handling without periodic boundaries
+        else:
+            if rmax > max(bound[:,1]-bound[:,0])/2:
+                raise ValueError(
+                    'rmax cannot be larger than half the largest dimension in '+
+                    'boundary, use rmax < {:}'.format(max(bound[:,1]-bound[:,0])/2)
+                )
     
     #create bin edges and bin centres for r
     rvals = np.arange(rmin,rmax+dr,dr)
@@ -200,8 +208,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
         reduced_boundary = boundary.copy()
-        reduced_boundary[:,0] += rmax
-        reduced_boundary[:,1] -= rmax
+        reduced_boundary[:,:,0] += rmax
+        reduced_boundary[:,:,1] -= rmax
     
     if insert_grid:
         base_n_ins = n_ins
@@ -211,31 +219,31 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
     pair_correlation = np.empty((nt,nr))
     
     #loop over all timesteps / independent sets of coordiates
-    for i,coords in enumerate(coordinates):
+    for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #use input coords or generate new test-particle coordinates for each set
         if type(ins_coords) != type(None):
             trialparticles = ins_coords
             n_ins = len(ins_coords)
         elif insert_grid and avoid_boundary:
-            trialparticles = _coord_grid_in_box(reduced_boundary,n=base_n_ins)
+            trialparticles = _coord_grid_in_box(reduced_boundary[i],n=base_n_ins)
             n_ins = len(trialparticles)
         elif insert_grid:
-            trialparticles = _coord_grid_in_box(boundary,n=base_n_ins)
+            trialparticles = _coord_grid_in_box(bound,n=base_n_ins)
             n_ins = len(trialparticles)
         elif avoid_coordinates and avoid_boundary:
-            trialparticles = _rand_coord_at_dist(reduced_boundary,coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(reduced_boundary[i],coords,rmin,n=n_ins)
         elif avoid_coordinates:
-            trialparticles = _rand_coord_at_dist(boundary,coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(bound,coords,rmin,n=n_ins)
         elif avoid_boundary:
-            trialparticles = _rand_coord_in_box(reduced_boundary,n=n_ins)
+            trialparticles = _rand_coord_in_box(reduced_boundary[i],n=n_ins)
         else:
-            trialparticles = _rand_coord_in_box(boundary,n=n_ins)
+            trialparticles = _rand_coord_in_box(bound,n=n_ins)
          
         #init KDTree for fast pairfinding
         if periodic_boundary:
-            coords = coords - boundary[:,0]#shift box to origin
-            tree = cKDTree(coords,boxsize=boundary[:,1]-boundary[:,0])
+            coords = coords - bound[:,0]#shift box to origin
+            tree = cKDTree(coords,boxsize=bound[:,1]-bound[:,0])
         else:
             tree = cKDTree(coords)
         
@@ -259,7 +267,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                 # for missing information
                 boundarycorr = _sphere_shell_vol_frac_periodic(
                     rvals,
-                    min(boundary[:,1]-boundary[:,0])
+                    min(bound[:,1]-bound[:,0])
                 )[np.newaxis,:]
                 
             else:
@@ -268,7 +276,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                 #boundary is shifted for coordinate system with origin in particle
                 boundarycorr = _sphere_shell_vol_fraction(
                     rvals,
-                    boundary-trialparticles[:,:,np.newaxis]
+                    bound-trialparticles[:,:,np.newaxis]
                 )
             #sum pairwise energy per particle per distance bin, then correct
             # each bin for missing volume, then sum and convert to probability 
@@ -335,8 +343,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
         independent set of coordinates (e.g. one time step from a video, etc.),
         with each element of the array of form  `[y,x]`. Each  set of 
         coordinates is not required to have the same number of particles but 
-        all stacks must share the same  bounding box as given by  `boundary`, 
-        and all coordinates must be within this bounding box.
+        all coordinates must be within the bounding box(es) given in 
+        `boundary`.
     pairpotential : iterable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
@@ -345,7 +353,10 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
     dr : float
         bin width of the pairwise distance bins.
     boundary : array-like of form `((ymin,ymax),(xmin,xmax))`
-        positions of the walls that define the bounding box of the coordinates.
+        positions of the walls that define the bounding box of the coordinates,
+        given as a single array-like for a shared set of boundaries for all 
+        coordinates, or an list-like of such array-likes with the same length 
+        as `coordinates` for a separate set of boundaries for each.
     pairpotential_binedges : iterable, optional
         bin edges corresponding to the values in `pairpotential. The default 
         is None, which uses the bins defined by `rmin`, `rmax` and `dr`.
@@ -405,37 +416,42 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
     if coordinates.ndim == 2:
         coordinates = coordinates[np.newaxis,:,:]
 
-    #check if rmax input and boundary are feasible for avoiding boundary
+    #check if single boundary or boundary per coordinate set
     boundary = np.array(boundary)
-    if avoid_boundary and rmax >= min(boundary[:,1]-boundary[:,0])/2:
-        raise ValueError(
-            'rmax cannot be more than half the smallest box dimension when '+
-            'avoid_boundary=True, use rmax < {:}'.format(min(boundary[:,1]-boundary[:,0])/2)
-        )
+    if boundary.ndim == 2:
+        boundary = np.broadcast_to(boundary,(len(coordinates),2,2))
     
-    #check rmax and boundary for edge-handling in periodic boundary conditions
-    elif periodic_boundary:
-        if boundary[0,1]-boundary[0,0] == boundary[1,1]-boundary[1,0]:
-            boxlen = boundary[0,1]-boundary[0,0]
-            if rmax > boxlen*np.sqrt(2)/2:
-                raise ValueError(
-                    'rmax cannot be more than sqrt(2)/2 times the size of a '+
-                    'square bounding box when periodic_boundary=True, use '+
-                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(2)/2)
-                )
-        elif rmax > min(boundary[:,1]-boundary[:,0]):
-            raise NotImplementedError(
-                'rmax larger than half the smallest box dimension when '+
-                'periodic_boundary=True is only implemented for square boundaries'
-            )
-    
-    #check rmax and boundary for edge handling without periodic boundaries
-    else:
-        if rmax > max(boundary[:,1]-boundary[:,0])/2:
+    #check if rmax input and boundary are feasible for avoiding boundary
+    for bound in boundary:
+        if avoid_boundary and rmax >= min(bound[:,1]-bound[:,0])/2:
             raise ValueError(
-                'rmax cannot be larger than half the largest dimension in '+
-                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
+                'rmax cannot be more than half the smallest box dimension when '+
+                'avoid_boundary=True, use rmax < {:}'.format(min(bound[:,1]-bound[:,0])/2)
             )
+        
+        #check rmax and boundary for edge-handling in periodic boundary conditions
+        elif periodic_boundary:
+            if bound[0,1]-bound[0,0] == bound[1,1]-bound[1,0]:
+                boxlen = bound[0,1]-bound[0,0]
+                if rmax > boxlen*np.sqrt(2)/2:
+                    raise ValueError(
+                        'rmax cannot be more than sqrt(2)/2 times the size of a '+
+                        'square bounding box when periodic_boundary=True, use '+
+                        'rmax < {:}'.format((bound[0,1]-bound[0,0])*np.sqrt(2)/2)
+                    )
+            elif rmax > min(bound[:,1]-bound[:,0]):
+                raise NotImplementedError(
+                    'rmax larger than half the smallest box dimension when '+
+                    'periodic_boundary=True is only implemented for square boundaries'
+                )
+        
+        #check rmax and boundary for edge handling without periodic boundaries
+        else:
+            if rmax > max(bound[:,1]-bound[:,0])/2:
+                raise ValueError(
+                    'rmax cannot be larger than half the largest dimension in '+
+                    'boundary, use rmax < {:}'.format(max(bound[:,1]-bound[:,0])/2)
+                )
     
     #create bin edges and bin centres for r
     rvals = np.arange(rmin,rmax+dr,dr)
@@ -461,30 +477,30 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
         reduced_boundary = boundary.copy()
-        reduced_boundary[:,0] += rmax
-        reduced_boundary[:,1] -= rmax
+        reduced_boundary[:,:,0] += rmax
+        reduced_boundary[:,:,1] -= rmax
     
     #initialize arrays to store values
     counter = np.empty((nt,nr))
     pair_correlation = np.empty((nt,nr))
     
     #loop over all timesteps / independent sets of coordiates
-    for i,coords in enumerate(coordinates):
+    for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #generate new test-particle coordinates for each set
         if avoid_coordinates and avoid_boundary:
-            trialparticles = _rand_coord_at_dist(reduced_boundary,coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(reduced_boundary[i],coords,rmin,n=n_ins)
         elif avoid_coordinates:
-            trialparticles = _rand_coord_at_dist(boundary,coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(bound,coords,rmin,n=n_ins)
         elif avoid_boundary:
-            trialparticles = _rand_coord_in_box(reduced_boundary,n=n_ins)
+            trialparticles = _rand_coord_in_box(reduced_boundary[i],n=n_ins)
         else:
-            trialparticles = _rand_coord_in_box(boundary,n=n_ins)
+            trialparticles = _rand_coord_in_box(bound,n=n_ins)
          
         #init KDTree for fast pairfinding
         if periodic_boundary:
-            coords -= boundary[:,0]#shift box to origin
-            tree = cKDTree(coords,boxsize=boundary[:,1]-boundary[:,0])
+            coords -= bound[:,0]#shift box to origin
+            tree = cKDTree(coords,boxsize=bound[:,1]-bound[:,0])
         else:
             tree = cKDTree(coords)
         
@@ -509,7 +525,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
                 # for missing information
                 boundarycorr = _circle_ring_area_frac_periodic(
                     rvals,
-                    min(boundary[:,1]-boundary[:,0])
+                    min(bound[:,1]-bound[:,0])
                 )[np.newaxis,:]
                 
             else:
@@ -518,7 +534,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
                 #boundary is shifted for coordinate system with origin in particle
                 boundarycorr = _circle_ring_area_fraction(
                     rvals,
-                    boundary-trialparticles[:,:,np.newaxis]
+                    bound-trialparticles[:,:,np.newaxis]
                 )
                 
             #sum pairwise energy per particle per distance bin, then correct
@@ -734,8 +750,8 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         independent set of coordinates (e.g. one z-stack, a time step from a 
         video, etc.), with each element of the array of form  `[z,y,x]`. Each 
         set of coordinates is not required to have the same number of particles
-        but all stacks must share the same  bounding box as given by 
-        `boundary`, and all coordinates must be within this bounding box.
+        and is assumed to share the same boundaries when no boundaries or only
+        a single set of boundaries are given.
     rmin : float, optional
         lower bound for the pairwise distance, left edge of 0th bin. The 
         default is 0.
@@ -746,8 +762,11 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         bin width for the pairwise distance bins. The default is (rmax-rmin)/20
     boundary : array-like, optional
         positions of the walls that define the bounding box of the coordinates,
-        given as  `((zmin,zmax),(ymin,ymax),(xmin,xmax))`. The default is the 
-        min and max values in the dataset along each dimension.
+        given as  `((zmin,zmax),(ymin,ymax),(xmin,xmax))` if all coordinate 
+        sets share the same boundary, or a list of such array-likes of the same
+        length as coordinates for specifying boundaries of each set in 
+        `coordinates` separately. The default is the min and max values in the 
+        dataset along each dimension.
     density : float, optional
         number density of particles in the box to use for normalizing the 
         values. The default is the average density based on `coordinates` and
@@ -811,42 +830,46 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
                 [coordinates[:,:,1].min(),coordinates[:,:,1].max()],
                 [coordinates[:,:,2].min(),coordinates[:,:,2].max()]
-            ])
+            ]*len(coordinates))
     else:
         boundary = np.array(boundary)
+        if boundary.ndim == 2:
+            boundary = np.broadcast_to(boundary, (len(coordinates),3,2))
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
     if periodic_boundary:
-        if min(boundary[:,1]-boundary[:,0])==max(boundary[:,1]-boundary[:,0]):
-            boxlen = boundary[0,1]-boundary[0,0]
-            if rmax > boxlen*np.sqrt(3)/2:
-                raise ValueError(
-                    'rmax cannot be more than sqrt(3)/2 times the size of a '+
-                    'cubic bounding box when periodic_boundary=True, use '+
-                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(3)/2)
+        for bound in boundary:
+            if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
+                boxlen = bound[0,1]-bound[0,0]
+                if rmax > boxlen*np.sqrt(3)/2:
+                    raise ValueError(
+                        'rmax cannot be more than sqrt(3)/2 times the size of a '+
+                        'cubic bounding box when periodic_boundary=True, use '+
+                        'rmax < {:}'.format((bound[0,1]-bound[0,0])*np.sqrt(3)/2)
+                    )
+            elif rmax > min(bound[:,1]-bound[:,0]):
+                raise NotImplementedError(
+                    'rmax larger than half the smallest box dimension when '+
+                    'periodic_boundary=True is only implemented for cubic boundaries'
                 )
-        elif rmax > min(boundary[:,1]-boundary[:,0]):
-            raise NotImplementedError(
-                'rmax larger than half the smallest box dimension when '+
-                'periodic_boundary=True is only implemented for cubic boundaries'
-            )
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:
-        if rmax > max(boundary[:,1]-boundary[:,0])/2:
-            raise ValueError(
-                'rmax cannot be larger than half the largest dimension in '+
-                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
-            )
+        for bound in boundary:
+            if rmax > max(bound[:,1]-bound[:,0])/2:
+                raise ValueError(
+                    'rmax cannot be larger than half the largest dimension in '+
+                    'boundary, use rmax < {:}'.format(max(bound[:,1]-bound[:,0])/2)
+                )
     
     #set density to mean number density in dataset
     if not density:
-        vol = np.product(boundary[:,1]-boundary[:,0])
-        density = np.mean([len(coords)/vol for coords in coordinates])
+        vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
+        density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     #loop over all sets of coordinates
     bincounts = []
-    for i,coords in enumerate(coordinates):
+    for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
         if not quiet:
@@ -855,7 +878,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         if periodic_boundary:
             #set up KDTree for fast neighbour finding
             #shift box boundary corner to origin for periodic KDTree
-            tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
+            tree = cKDTree(coords-bound[:,0],boxsize=bound[:,1]-bound[:,0])
             
             #count number of particle pairs per bin directly
             counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
@@ -864,7 +887,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             if handle_edge:
                 boundarycorr = _sphere_shell_vol_frac_periodic(
                     rvals,
-                    min(boundary[:,1]-boundary[:,0])
+                    min(bound[:,1]-bound[:,0])
                 )
                 counts = counts/boundarycorr
             
@@ -893,7 +916,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
                 boundarycorr=_sphere_shell_vol_fraction(
                     rvals,
-                    boundary-coords[:,:,np.newaxis]
+                    bound-coords[:,:,np.newaxis]
                     )
                 counts = np.sum(counts/boundarycorr,axis=0)
         
@@ -928,10 +951,10 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         list of sets of coordinates, where each item along the 0th dimension is
         a n*3 numpy.array of particle coordinates, where each array is an 
         independent set of coordinates (e.g. one z-stack, a time step from a 
-        video, etc.), with each element of the array of form  `[y,x]`. Each set
-        of coordinates is not required to have the same number of particles but
-        all stacks must share the same  bounding box as given by `boundary`, 
-        and all coordinates must be within this bounding box.
+        video, etc.), with each element of the array of form  `[y,x]`.  Each 
+        set of coordinates is not required to have the same number of particles
+        and is assumed to share the same boundaries when no boundaries or only
+        a single set of boundaries are given.
     rmin : float, optional
         lower bound for the pairwise distance, left edge of 0th bin. The 
         default is 0.
@@ -942,8 +965,11 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         bin width for the pairwise distance bins. The default is (rmax-rmin)/20
     boundary : array-like, optional
         positions of the walls that define the bounding box of the coordinates,
-        given as  `((ymin,ymax),(xmin,xmax))`. The default is the min and max 
-        values in the dataset along each dimension.
+        given as  `((ymin,ymax),(xmin,xmax))` if all coordinate sets share the 
+        same boundary, or a list of such array-likes of the same length as 
+        `coordinates` for specifying boundaries of each set in `coordinates` 
+        separately. The default is the min and max values in the dataset along 
+        each dimension.
     density : float, optional
         number density of particles in the box to use for normalizing the 
         values. The default is the average density based on `coordinates` and
@@ -994,44 +1020,46 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         boundary = np.array([
                 [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
                 [coordinates[:,:,1].min(),coordinates[:,:,1].max()]
-            ])
+            ]*len(coordinates))
     else:
         boundary = np.array(boundary)
     
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
     if periodic_boundary:
-        if boundary[0,1]-boundary[0,0] == boundary[1,1]-boundary[1,0]:
-            boxlen = boundary[0,1]-boundary[0,0]
-            if rmax > boxlen*np.sqrt(2)/2:
-                raise ValueError(
-                    'rmax cannot be more than sqrt(2)/2 times the size of a '+
-                    'square bounding box when periodic_boundary=True, use '+
-                    'rmax < {:}'.format((boundary[0,1]-boundary[0,0])*np.sqrt(2)/2)
+        for bound in boundary:
+            if bound[0,1]-bound[0,0] == bound[1,1]-bound[1,0]:
+                boxlen = bound[0,1]-bound[0,0]
+                if rmax > boxlen*np.sqrt(2)/2:
+                    raise ValueError(
+                        'rmax cannot be more than sqrt(2)/2 times the size of a '+
+                        'square bounding box when periodic_boundary=True, use '+
+                        'rmax < {:}'.format((bound[0,1]-bound[0,0])*np.sqrt(2)/2)
+                    )
+            elif rmax > min(bound[:,1]-bound[:,0])/2:
+                raise NotImplementedError(
+                    'rmax larger than half the smallest box dimension when '+
+                    'periodic_boundary=True is only implemented for square boundaries'
                 )
-        elif rmax > min(boundary[:,1]-boundary[:,0])/2:
-            raise NotImplementedError(
-                'rmax larger than half the smallest box dimension when '+
-                'periodic_boundary=True is only implemented for square boundaries'
-            )
     
     #check rmax and boundary for edge handling without periodic boundaries
     else:
-        if rmax > max(boundary[:,1]-boundary[:,0])/2:
-            raise ValueError(
-                'rmax cannot be larger than half the largest dimension in '+
-                'boundary, use rmax < {:}'.format(max(boundary[:,1]-boundary[:,0])/2)
-            )
+        for bound in boundary:
+            if rmax > max(bound[:,1]-bound[:,0])/2:
+                raise ValueError(
+                    'rmax cannot be larger than half the largest dimension in '+
+                    'boundary, use rmax < {:}'.format(max(bound[:,1]-bound[:,0])/2)
+                )
     
     #set density to mean number density in dataset
     if not density:
-        vol = np.product(boundary[:,1]-boundary[:,0])
-        density = np.mean([len(coords)/vol for coords in coordinates])
+        vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
+        density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     
     #loop over all sets of coordinates
     bincounts = []
-    for i,coords in enumerate(coordinates):
+    for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
         if not quiet:
@@ -1041,7 +1069,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         if periodic_boundary:
             #set up KDTree for fast neighbour finding
             #shift box boundary corner to origin for periodic KDTree
-            tree = cKDTree(coords-boundary[:,0],boxsize=boundary[:,1]-boundary[:,0])
+            tree = cKDTree(coords-bound[:,0],boxsize=bound[:,1]-bound[:,0])
             
             #count number of particle pairs per bin directly
             counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
@@ -1051,7 +1079,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 
                 boundarycorr = _circle_ring_area_frac_periodic(
                     rvals,
-                    boundary[0,1]-boundary[0,0]
+                    bound[0,1]-bound[0,0]
                 )
                 counts = counts/boundarycorr
         
@@ -1079,7 +1107,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                         counts[j] = np.histogram(row[msk],bins=rvals)[0]
                 boundarycorr=_circle_ring_area_fraction(
                     rvals,
-                    boundary-coords[:,:,np.newaxis]
+                    bound-coords[:,:,np.newaxis]
                     )
                 counts = np.sum(counts/boundarycorr,axis=0)
                 
