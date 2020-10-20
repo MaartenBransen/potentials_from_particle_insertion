@@ -5,7 +5,7 @@ m.bransen@uu.nl
 
 __version__ = '0.3'
 
-from .pairpotential_iterator import run_iteration,run_iterator_fitfunction
+from .pairpotential_iterator import run_iteration,run_iterator_fitfunction,run_iterator_fitfunction2
 from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_3d,\
     rdf_dist_hist_3d,rdf_insertion_binned_2d,rdf_dist_hist_2d
 
@@ -13,6 +13,7 @@ from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_
 __all__ = [
     'run_iteration',
     'run_iterator_fitfunction',
+    'run_iterator_fitfunction2'
     'rdf_insertion_binned_2d',
     'rdf_insertion_binned_3d',
     'rdf_insertion_exact_3d',
