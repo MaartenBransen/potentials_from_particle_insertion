@@ -1007,14 +1007,14 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         raise TypeError(
             "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
         )
-    
-    #check list of coordinates or only one coordinate set
-    if coordinates.ndim == 2:
-        coordinates = coordinates[np.newaxis,:,:]
-    
+        
     #set default step size
     if type(dr)==type(dr):
         dr = (rmax-rmin)/20
+        
+    #check list of coordinates or only one coordinate set
+    if coordinates.ndim == 2:
+        coordinates = coordinates[np.newaxis,:,:]
     
     #set default boundary as min and max values in dataset
     if type(boundary)==type(None):
@@ -1024,6 +1024,10 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             ]*len(coordinates))
     else:
         boundary = np.array(boundary)
+        
+        #assure list of coordinate sets
+        if boundary.ndim==2:
+            boundary = np.array([boundary]*len(coordinates))
     
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
