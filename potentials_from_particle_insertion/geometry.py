@@ -266,6 +266,80 @@ def _circle_ring_area_frac_periodic(r,boxsize):
     
     return part_ring/full_ring
 
+def _circle_ring_area_fraction_circularboundary(r,distances,boundaryrad):
+    """fully analytical and numpy vectorized function which returns the 
+    fraction of the area of circular rings r+dr around particles which is 
+    within the circular boundary conditions.
+    
+    Parameters
+    ----------
+    r : numpy.array
+        list of edges for the bins in r, where the number of shells is len(r)-1
+    distances : numpy.array of length n
+        list of distances between the particles and the center of the circular
+        boundary, for each particle.
+    boundaryrad : float
+        radius defining the circular boundary
+
+    Returns
+    -------
+    numpy.array of shape n*(len(r)-1)
+        array containing the fraction of each circle ring in r around each 
+        particle which lies inside of the boundaries, i.e. A_in/A_tot
+    """
+    #https://diego.assencio.com/?index=8d6ca3d82151bad815f78addf9b5c1c6
+    
+    #initialize zeros array with row for each particle and column for each r
+    nrow,ncol = len(distances),len(r)
+    area = np.zeros((nrow,ncol),dtype=float)
+    
+    #check that no particles are outside boundary
+    if any(distances>boundaryrad):
+        raise ValueError('all particles must be within boundary')
+    
+    #circles entirely enclosed in boundary
+    mask1 = (r<=boundaryrad)[np.newaxis,:] & (distances[:,np.newaxis] <=  (boundaryrad - r)[np.newaxis,:])
+    area[mask1] += np.broadcast_to((np.pi*r**2)[np.newaxis,:],(nrow,ncol))[mask1]
+   
+    #boundary entirely enclosed in circle
+    mask2 = (r>boundaryrad)[np.newaxis,:] & (distances[:,np.newaxis] <=  (r - boundaryrad)[np.newaxis,:])
+    area[mask2] += np.pi*boundaryrad**2
+    
+    #all other places
+    mask1 = ~np.logical_or(mask1,mask2)
+    
+    #calculate intersection area where r<=boundaryrad
+    mask2 = mask1 & np.broadcast_to((r <= boundaryrad)[np.newaxis,:],(nrow,ncol))
+    
+    r1 = boundaryrad
+    r2 = np.broadcast_to(r[np.newaxis,:],(nrow,ncol))[mask2]
+    d = np.broadcast_to(distances[:,np.newaxis],(nrow,ncol))[mask2]
+    d1 = (r1**2-r2**2+d**2)/(2*d)
+    d2 = d - d1
+    
+    area[mask2] += \
+        r1**2 * np.arccos(d1/r1) - d1 * np.sqrt(r1**2-d1**2) +\
+        r2**2 * np.arccos(d2/r2) - d2 * np.sqrt(r2**2-d2**2)
+    
+    #calculate intersection area where r>boundaryrad
+    mask2 = mask1 & np.broadcast_to((r >  boundaryrad)[np.newaxis,:],(nrow,ncol))
+
+    r1 = np.broadcast_to(r[np.newaxis,:],(nrow,ncol))[mask2]
+    r2 = boundaryrad
+    d = np.broadcast_to(distances[:,np.newaxis],(nrow,ncol))[mask2]
+    d1 = (r1**2-r2**2+d**2)/(2*d)
+    d2 = d - d1
+    
+    area[mask2] += \
+        r1**2 * np.arccos(d1/r1) - d1 * np.sqrt(r1**2-d1**2) +\
+        r2**2 * np.arccos(d2/r2) - d2 * np.sqrt(r2**2-d2**2)
+    
+    #calculate each shell by subtracting the sphere volumes of previous r
+    part_ring = area[:,1:] - area[:,:-1]
+    tot_ring = np.pi * (r[1:]**2 - r[:-1]**2)
+    
+    return part_ring/tot_ring
+
 if _numba_available:
     @nb.njit()
     def _sphere_oct_vol_nb(r,hx,hy,hz):

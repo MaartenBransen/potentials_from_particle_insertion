@@ -7,7 +7,7 @@ __version__ = '0.3'
 
 from .pairpotential_iterator import run_iteration,run_iterator_fitfunction,run_iterator_fitfunction2
 from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_3d,\
-    rdf_dist_hist_3d,rdf_insertion_binned_2d,rdf_dist_hist_2d
+    rdf_dist_hist_3d,rdf_insertion_binned_2d,rdf_dist_hist_2d,rdf_dist_hist_2d_circularboundary
 
 #define all for doing `from .. import *`
 __all__ = [
@@ -18,6 +18,7 @@ __all__ = [
     'rdf_insertion_binned_3d',
     'rdf_insertion_exact_3d',
     'rdf_dist_hist_2d',
+    'rdf_dist_hist_2d_circularboundary',
     'rdf_dist_hist_3d',
 ]
 
