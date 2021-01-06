@@ -22,6 +22,38 @@ def _rand_coord_in_box(boundary,n=1):
     """
     return np.random.random_sample((n,len(boundary)))*\
         (boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
+        
+def _rand_coord_in_circle(boundary_pos,boundary_rad,n=1):
+    """
+    generate n random coordinates uniformly distributed in the box defined by
+    boundary
+
+    Parameters
+    ----------
+    boundary_pos : tuple of form (y,x)
+        The position of the centre of the circle in which to generate 
+        coordinates
+    boundary_rad : float
+        the radius of the circle in which to generate coordinates
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*2
+        Randomly generated 2D coordinates within the circle
+
+    References
+    ----------
+    https://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly/50746409#50746409
+    """
+    r = boundary_rad*np.sqrt(np.random.random_sample(n))
+    theta = 2*np.pi*np.random.random_sample(n)
+    coords = np.empty((n,2))
+    coords[:,0] = boundary_pos[0] + r*np.sin(theta)
+    coords[:,1] = boundary_pos[1] + r*np.cos(theta)
+    
+    return coords
 
 def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
     """Random coordinate from contineous uniform distribution of box given by
