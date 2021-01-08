@@ -515,9 +515,10 @@ def run_iterator_circularboundary(coordinates,pair_correlation_func,boundary_pos
     pair_correlation_func : list of float
         bin values for the true pair correlation function that the algorithm 
         will try to match iteratively.
-    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
-        positions of the walls that define the bounding box of the coordinates.
-        Number of dimensions must match coordinates.
+    boundary_pos : tuple of form `(y,x)`
+        coordinates defining the center position of the circular boundary
+    boundary_rad : float
+        radius of the circular boundary
     initial_guess : list of float, optional
         Initial guess for the particle potential on the 0th iteration. The 
         default is None which gives 0 in each bin.
@@ -543,8 +544,8 @@ def run_iterator_circularboundary(coordinates,pair_correlation_func,boundary_pos
         at the cost of slower convergence. Experimental option. The default is
         `False`.
     **kwargs : key=value
-        Additional keyword arguments are passed on to `rdf_insertion_binned_2d`
-        or `rdf_insertion_binned_3d`
+        Additional keyword arguments are passed on to 
+        `rdf_insertion_binned_2d_circularboundary`
 
     Returns
     -------
@@ -566,8 +567,8 @@ def run_iterator_circularboundary(coordinates,pair_correlation_func,boundary_pos
     
     See also
     --------
-    rdf_insertion_binned_2d : 2D routine for g(r) from test-particle insertion
-    rdf_insertion_binned_3d : 3D routine for g(r) from test-particle insertion
+    rdf_insertion_binned_2d_circularboundaru : 2D routine for g(r) from 
+    test-particle insertion under circular boundary conditions.
     """
     
     #create values for bin edges and centres of r
