@@ -42,7 +42,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,periodic_boundary=False,
                             ins_coords=None,insert_grid=False,
-                            avoid_boundary=False,avoid_coordinates=False):
+                            avoid_boundary=False,avoid_coordinates=False,
+                            neighbors_upper_bound=None):
     """Calculate g(r) from insertion of test-particles into sets of existing
     3D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -101,6 +102,11 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         whether to insert test-particles at least `rmin` away from the center 
         of any of the 'real' coordinates in `coordinates`. The default is 
         False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
 
     Returns
     -------
@@ -248,8 +254,14 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         else:
             tree = cKDTree(coords)
         
+        #set default neighbor_upper_bound
+        if type(neighbors_upper_bound)==type(None):
+            k = len(coords)
+        else:
+            k = min([neighbors_upper_bound,len(coords)])
+        
         #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=len(coords),distance_upper_bound=rmax)
+        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax)
         
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
@@ -738,7 +750,7 @@ if _numba_available:
 
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True,
-                     quiet=False):
+                     quiet=False,neighbors_upper_bound=None):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 3D coordinate sets. Provided for convenience. Edge correction based
     on refs [1] and [2].
@@ -780,6 +792,11 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     quiet : bool, optional
         if True, no output is printed to the terminal by this function call. 
         The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
 
     Returns
     -------
@@ -899,8 +916,15 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             tree = cKDTree(coords)
             
             if handle_edge:
+                
+                #set default neighbor_upper_bound
+                if type(neighbors_upper_bound)==type(None):
+                    k = len(coords)
+                else:
+                    k = min([neighbors_upper_bound,len(coords)])
+                
                 #query tree for any neighbours up to rmax for each particle separately
-                dist,indices = tree.query(coords,k=len(coords),distance_upper_bound=rmax)
+                dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax)
             
                 #remove pairs with self, padded (infinite) values and anythin below rmin
                 dist = dist[:,1:]
