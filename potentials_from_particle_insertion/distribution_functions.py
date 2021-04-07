@@ -986,7 +986,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     ----------
     coordinates : numpy.array or list-like of numpy.array of floats
         list of sets of coordinates, where each item along the 0th dimension is
-        a n*3 numpy.array of particle coordinates, where each array is an 
+        a n*2 numpy.array of particle coordinates, where each array is an 
         independent set of coordinates (e.g. one z-stack, a time step from a 
         video, etc.), with each element of the array of form  `[y,x]`.  Each 
         set of coordinates is not required to have the same number of particles
