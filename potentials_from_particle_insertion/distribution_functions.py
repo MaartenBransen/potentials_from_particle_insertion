@@ -1534,3 +1534,207 @@ def rdf_insertion_binned_2d_circularboundary(coordinates,pairpotential,rmax,dr,
     pair_correlation[counter==0] = 0
     
     return pair_correlation,counter
+
+def rdf_insertion_binned_2d_customboundary(coordinates,pairpotential,rmax,dr,
+                            boundary,boundary_func,testparticle_func,
+                            pairpotential_binedges=None,n_ins=1000,
+                            interpolate=True,rmin=0,avoid_coordinates=False,
+                            neighbors_upper_bound=None):
+    """Calculate g(r) from insertion of test-particles into sets of existing
+    2D coordinates, averaged over bins of width dr, and based on the pairwise 
+    interaction potential u(r) (in units of kT).
+    
+    Implementation partly based on ref. [1] but with novel corrections for 
+    edge effects based on analytical formulas for periodic and nonperiodic 
+    boundary conditions.
+
+    Parameters
+    ----------
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*2 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one time step from a video, etc.),
+        with each element of the array of form  `[y,x]`. Each  set of 
+        coordinates is not required to have the same number of particles but 
+        all coordinates must be within the bounding box(es) given in 
+        `boundary`.
+    pairpotential : iterable
+        list of values for the pairwise interaction potential. Must have length
+        of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    rmax : float
+        cut-off radius for the pairwise distance (right edge of last bin).
+    dr : float
+        bin width of the pairwise distance bins.
+    boundary : array-like of form `((ymin,ymax),(xmin,xmax))`
+        positions of the walls that define the bounding box of the coordinates,
+        given as a single array-like for a shared set of boundaries for all 
+        coordinates, or an list-like of such array-likes with the same length 
+        as `coordinates` for a separate set of boundaries for each.
+    pairpotential_binedges : iterable, optional
+        bin edges corresponding to the values in `pairpotential. The default 
+        is None, which uses the bins defined by `rmin`, `rmax` and `dr`.
+    n_ins : int, optional
+        the number of test-particles to insert into each item in `coordinates`.
+        The default is 1000.
+    interpolate : bool, optional
+        whether to use linear interpolation for calculating the interaction of 
+        two particles using the values in `pairpotential`. The default is True.
+        If False, the nearest bin value is used.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
+    avoid_coordinates : bool, optional
+        whether to insert test-particles at least `rmin` away from the center 
+        of any of the 'real' coordinates in `coordinates`. The default is 
+        False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+
+    Returns
+    -------
+    pair_correlation : numpy.array
+        values for the rdf / pair correlation function in each bin
+    counter : numpy.array
+        number of pair counts that contributed to the (mean) values in each bin
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
+    """
+
+    #assure array of arrays with first axis as dtype=object and rest floats
+    if type(coordinates)==list:#weird syntax but there's no prettier way
+        coordinates = np.array([None]+coordinates,dtype=object)[1:]
+    
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+            )
+    else:
+        raise TypeError(
+            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+        )
+    
+    if len(coordinates) != len(boundary):
+        raise ValueError('lengths of boundary and coordinates must match')
+    if len(coordinates) != len(boundary_func):
+        raise ValueError('lengths of boundary_func and coordinates must match')
+    if len(coordinates) != len(testparticle_func):
+        raise ValueError('lengths of testparticle_func and coordinates must match')
+    
+    #assure 3D array for coordinates
+    if coordinates.ndim == 2:
+        coordinates = coordinates[np.newaxis,:,:]
+    
+    #create bin edges and bin centres for r
+    rvals = np.arange(rmin,rmax+dr,dr)
+    rcent = rvals[:-1]+dr/2
+    nt = len(coordinates)
+    nr = len(rcent)
+    
+    #bin edges and centres for pairpotential
+    if type(pairpotential_binedges) == type(None):
+        pairpotential_binedges = rvals
+    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+    
+    #init function that returns energy from list of pairwise distances
+    if interpolate:#linearly interpolate pair potential between points
+        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
+                                         pairpotential)
+    else:#get pair potential from nearest bin (round r to bincenter)
+        from scipy.interpolate import interp1d    
+        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
+                           kind='nearest',bounds_error=False,
+                           fill_value='extrapolate')
+    
+    #initialize arrays to store values
+    counter = np.empty((nt,nr))
+    pair_correlation = np.empty((nt,nr))
+    
+    #loop over all timesteps / independent sets of coordiates
+    for i,(bound,boundfunc,testfunc,coords) in \
+        enumerate(zip(boundary,boundary_func,testparticle_func,coordinates)):
+        
+        #generate new test-particle coordinates for each set
+        if avoid_coordinates:
+            trialparticles = testfunc(bound,coords,rmin,n=n_ins)
+        else:
+            trialparticles = testfunc(bound,n=n_ins)
+        
+        #init KDTree for fast pairfinding
+        tree = cKDTree(coords)
+        
+        #set default neighbor_upper_bound
+        if type(neighbors_upper_bound)==type(None):
+            k = len(coords)
+        else:
+            k = min([neighbors_upper_bound,len(coords)])
+        
+        #find all pairs with one particle from testparticles and one from coordinates
+        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax)
+        
+        #cKDTree pads rows with np.inf to get correct length, work with masked
+        #arrays to only work on finite values
+        mask = np.isfinite(distances) & (distances>0)
+        distances = np.ma.masked_array(distances,mask)
+        
+        #calculate total potential energy of insertion (psi) for each testparticle
+        #(row) by summing each pairwise potential energy u(r) 
+        #calculate correction factor for each testparticle for each dist bin
+        # to account for missing information around particles near boundary.
+        #boundary is shifted for coordinate system with origin in particle
+        boundarycorr = boundfunc(
+            rvals,
+            trialparticles,
+            bound
+        )
+                
+        #sum pairwise energy per particle per distance bin, then correct
+        # each bin for missing volume, then sum and convert to probability 
+        # e^(-psi)
+        exp_psi = np.empty((n_ins,nr))
+        for j,(row,msk) in enumerate(zip(distances,mask)):
+            dist = row[msk]
+            exp_psi[j] = np.histogram(dist,bins=rvals,weights=pot_fun(dist))[0]
+            
+        #calculate probability of testparticles
+        exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
+            
+        #calculate average probability of all testparticles
+        prob_tot = np.mean(exp_psi)
+        
+        #count how many pairs each particle contributes to each bin
+        if _numba_available:
+            prob_r = _apply_hist_nb(distances,mask,rvals)
+        else:
+            prob_r = np.empty((n_ins,nr))
+            for j,(row,msk) in enumerate(zip(distances,mask)):
+                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+        
+        #boundarycorrect probability counts for correct weighing
+        prob_r = prob_r / boundarycorr 
+        
+        counts = prob_r.sum(axis=0)
+        
+        #take average of test-particle probabilities in each bin weighted by number
+        # of pair counts
+        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
+        prob_r[counts!=0] /= counts[counts!=0]
+        
+        #store to lists
+        counter[i] = counts
+        pair_correlation[i] = prob_r/prob_tot
+    
+    pair_correlation = np.sum(pair_correlation*counter,axis=0)
+    counter = counter.sum(axis=0)
+    pair_correlation[counter!=0] /= counter[counter!=0]
+    pair_correlation[counter==0] = 0
+    
+    return pair_correlation,counter
