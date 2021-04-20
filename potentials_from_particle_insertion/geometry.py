@@ -163,6 +163,8 @@ def _sphere_shell_vol_frac_periodic(r,boxsize):
     
     return part/full
 
+
+#@nb.njit
 def _circle_ring_area_fraction(r,boundary):
     """fully numpy vectorized function which returns the fraction of the area 
     of circular rings r+dr around particles, for a list of particles and a 

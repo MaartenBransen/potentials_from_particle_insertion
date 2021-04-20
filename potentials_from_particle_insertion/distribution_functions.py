@@ -43,7 +43,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                             interpolate=True,rmin=0,periodic_boundary=False,
                             ins_coords=None,insert_grid=False,
                             avoid_boundary=False,avoid_coordinates=False,
-                            neighbors_upper_bound=None):
+                            neighbors_upper_bound=None,workers=1):
     """Calculate g(r) from insertion of test-particles into sets of existing
     3D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -107,6 +107,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
 
     Returns
     -------
@@ -261,7 +265,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
             k = min([neighbors_upper_bound,len(coords)])
         
         #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax)
+        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax,
+                                 workers=workers)
         
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
@@ -340,7 +345,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,periodic_boundary=False,
                             avoid_boundary=False,avoid_coordinates=False,
-                            neighbors_upper_bound=None):
+                            neighbors_upper_bound=None,workers=1):
     """Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -400,6 +405,10 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
 
     Returns
     -------
@@ -530,7 +539,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
             k = min([neighbors_upper_bound,len(coords)])
         
         #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax)
+        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax,
+                                 workers=workers)
         
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
@@ -762,7 +772,7 @@ if _numba_available:
 
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True,
-                     quiet=False,neighbors_upper_bound=None):
+                     quiet=False,neighbors_upper_bound=None,workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 3D coordinate sets. Provided for convenience. Edge correction based
     on refs [1] and [2].
@@ -809,6 +819,10 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
 
     Returns
     -------
@@ -936,7 +950,8 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     k = min([neighbors_upper_bound,len(coords)])
                 
                 #query tree for any neighbours up to rmax for each particle separately
-                dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax)
+                dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax,
+                                          workers=workers)
             
                 #remove pairs with self, padded (infinite) values and anythin below rmin
                 dist = dist[:,1:]
@@ -977,7 +992,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
 def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True,
-                     quiet=False,neighbors_upper_bound=None):
+                     quiet=False,neighbors_upper_bound=None,workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 2D coordinate sets. Provided for convenience. Edge correction is 
     fully analytical for both periodic and nonperiodic boundary conditions.
@@ -1024,6 +1039,10 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
 
     Returns
     -------
@@ -1144,7 +1163,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                     k = min([neighbors_upper_bound,len(coords)])
                 
                 #query particles individually for per-particle edge handling
-                dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax)
+                dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax,
+                                          workers=workers)
                 
                 #remove pairs with self, padded (infinite) values and anythin below rmin
                 dist = dist[:,1:]
@@ -1182,7 +1202,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
 def rdf_dist_hist_2d_circularboundary(coordinates,boundary_pos,boundary_rad,
                                       rmin=0,rmax=10,dr=None,density=None,
-                                      quiet=False,neighbors_upper_bound=None):
+                                      quiet=False,neighbors_upper_bound=None,
+                                      workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 2D coordinate sets. Provided for convenience. Edge correction is 
     fully analytical for both periodic and nonperiodic boundary conditions.
@@ -1223,6 +1244,10 @@ def rdf_dist_hist_2d_circularboundary(coordinates,boundary_pos,boundary_rad,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. The default 
+        is 1.
 
     Returns
     -------
@@ -1288,7 +1313,8 @@ def rdf_dist_hist_2d_circularboundary(coordinates,boundary_pos,boundary_rad,
          
         #set up and query tree for fast neighbor finding
         tree = cKDTree(coords)
-        dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax)
+        dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax,
+                                  workers=workers)
         
         #remove pairs with self, padded (infinite) values and anythin below rmin
         dist = dist[:,1:]
@@ -1327,7 +1353,8 @@ def rdf_insertion_binned_2d_circularboundary(coordinates,pairpotential,rmax,dr,
                                              n_ins=1000,interpolate=True,
                                              rmin=0,periodic_boundary=False,
                                              avoid_boundary=False,
-                                             neighbors_upper_bound=None):
+                                             neighbors_upper_bound=None,
+                                             workers=1):
     """Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -1383,6 +1410,10 @@ def rdf_insertion_binned_2d_circularboundary(coordinates,pairpotential,rmax,dr,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. The default 
+        is 1.
 
     Returns
     -------
@@ -1468,7 +1499,8 @@ def rdf_insertion_binned_2d_circularboundary(coordinates,pairpotential,rmax,dr,
         tree = cKDTree(coords)
         
         #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=len(coords),distance_upper_bound=rmax)
+        distances,_ = tree.query(trialparticles,k=len(coords),
+                                 distance_upper_bound=rmax,workers=workers)
         
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
@@ -1539,7 +1571,7 @@ def rdf_insertion_binned_2d_customboundary(coordinates,pairpotential,rmax,dr,
                             boundary,boundary_func,testparticle_func,
                             pairpotential_binedges=None,n_ins=1000,
                             interpolate=True,rmin=0,avoid_coordinates=False,
-                            neighbors_upper_bound=None):
+                            neighbors_upper_bound=None,workers=1):
     """Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -1591,6 +1623,10 @@ def rdf_insertion_binned_2d_customboundary(coordinates,pairpotential,rmax,dr,
         particle. Useful for datasets with dimensions much larger than rmax.
         Only relevant for the case where `handle_edge=True`. The default is 
         None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. The default 
+        is 1.
 
     Returns
     -------
@@ -1678,7 +1714,8 @@ def rdf_insertion_binned_2d_customboundary(coordinates,pairpotential,rmax,dr,
             k = min([neighbors_upper_bound,len(coords)])
         
         #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax)
+        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax,
+                                 workers=workers)
         
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
