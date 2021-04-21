@@ -978,7 +978,8 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #normalize and add to overall list
         #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
-        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3)) / (density*len(coords)))
+        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
+                         / (density*len(coords)))
         
     #newline
     if not quiet:
@@ -1060,13 +1061,11 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         coordinates = np.array([None]+coordinates,dtype=object)[1:]
     elif type(coordinates)==np.ndarray:
         if not np.can_cast(coordinates[0].dtype,float):
-            raise TypeError(
-                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
-            )
+            raise TypeError(f"dtype `{coordinates[0].dtype}` of `coordinates`"
+                            "can't be broadcasted to `float`")
     else:
-        raise TypeError(
-            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
-        )
+        raise TypeError(f"dtype `{type(coordinates)}` of `coordinates` not "
+                        "supported, use a list of numpy.array")
         
     #set default step size
     if type(dr)==type(dr):
@@ -1097,14 +1096,15 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 boxlen = bound[0,1]-bound[0,0]
                 if rmax > boxlen*np.sqrt(2)/2:
                     raise ValueError(
-                        'rmax cannot be more than sqrt(2)/2 times the size of a '+
-                        'square bounding box when periodic_boundary=True, use '+
-                        'rmax < {:}'.format((bound[0,1]-bound[0,0])*np.sqrt(2)/2)
+                        'rmax cannot be more than sqrt(2)/2 times the size of '
+                        'a square bounding box when periodic_boundary=True, '
+                        f'use rmax < {(bound[0,1]-bound[0,0])*np.sqrt(2)/2}'
                     )
             elif rmax > min(bound[:,1]-bound[:,0])/2:
                 raise NotImplementedError(
-                    'rmax larger than half the smallest box dimension when '+
-                    'periodic_boundary=True is only implemented for square boundaries'
+                    'rmax larger than half the smallest box dimension when '
+                    'periodic_boundary=True is only implemented for square '
+                    'boundaries'
                 )
     
     #check rmax and boundary for edge handling without periodic boundaries
@@ -1112,8 +1112,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         for bound in boundary:
             if rmax > max(bound[:,1]-bound[:,0])/2:
                 raise ValueError(
-                    'rmax cannot be larger than half the largest dimension in '+
-                    'boundary, use rmax < {:}'.format(max(bound[:,1]-bound[:,0])/2)
+                    'rmax cannot be larger than half the largest dimension in '
+                    f'boundary, use rmax < {max(bound[:,1]-bound[:,0])/2}'
                 )
     
     #set density to mean number density in dataset
@@ -1128,7 +1128,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #print progress
         if not quiet:
-            print('\rcalculating distance histogram g(r) {:d} of {:d}'.format(i+1,len(coordinates)),end='')
+            print('\rcalculating distance histogram g(r) '
+                  '{:d} of {:d}'.format(i+1,len(coordinates)),end='')
         
         #in case of periodic boundary conditions
         if periodic_boundary:
@@ -1166,12 +1167,14 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax,
                                           workers=workers)
                 
-                #remove pairs with self, padded (infinite) values and anythin below rmin
+                #remove pairs with self, padded (infinite) values and anythin 
+                #below rmin
                 dist = dist[:,1:]
                 mask = np.isfinite(dist) & (dist>=rmin)
                 
-                #histogram the distances per reference particle and apply correction factor
-                #for missing volume to each particle (each row) and each distance bin separately
+                #histogram the distances per reference particle and apply 
+                #correction factor for missing volume to each particle (each 
+                #row) and each distance bin separately
                 if _numba_available:
                     counts = _apply_hist_nb(dist,mask,rvals)
                 else:
@@ -1189,7 +1192,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         
         #normalize and add to overall list
-        bincounts.append(counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / (density*len(coords)))
+        bincounts.append(counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / \
+                         (density*len(coords)))
     
     #newline
     if not quiet:
@@ -1266,11 +1270,13 @@ def rdf_dist_hist_2d_circularboundary(coordinates,boundary_pos,boundary_rad,
     elif type(coordinates)==np.ndarray:
         if not np.can_cast(coordinates[0].dtype,float):
             raise TypeError(
-                "dtype `{}` of `coordinates` can't be broadcasted to `float`".format(coordinates[0].dtype)
+                f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "
+                "broadcasted to `float`"
             )
     else:
         raise TypeError(
-            "dtype `{}` of `coordinates` not supported, use a list of numpy.array".format(type(coordinates))
+            f"dtype `{type(coordinates)}` of `coordinates` not supported, use "
+            "a list of numpy.array"
         )
     
     #check list of coordinates or only one coordinate set
