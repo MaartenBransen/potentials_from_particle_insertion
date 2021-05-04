@@ -1167,7 +1167,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 dist,indices = tree.query(coords,k=k,distance_upper_bound=rmax,
                                           workers=workers)
                 
-                #remove pairs with self, padded (infinite) values and anythin 
+                #remove pairs with self, padded (infinite) values and anything
                 #below rmin
                 dist = dist[:,1:]
                 mask = np.isfinite(dist) & (dist>=rmin)
