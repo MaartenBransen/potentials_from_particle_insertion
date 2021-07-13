@@ -869,12 +869,12 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         dr = (rmax-rmin)/20
     
     #set default boundary as min and max values in dataset
-    if type(boundary)==type(None):
-        boundary = np.array([
-                [coordinates[:,:,0].min(),coordinates[:,:,0].max()],
-                [coordinates[:,:,1].min(),coordinates[:,:,1].max()],
-                [coordinates[:,:,2].min(),coordinates[:,:,2].max()]
-            ]*len(coordinates))
+    if boundary is None:
+        boundary = np.array([[
+                [coord[:,0].min(),coord[:,0].max()],
+                [coord[:,1].min(),coord[:,1].max()],
+                [coord[:,2].min(),coord[:,2].max()]
+            ] for coord in coordinates])
     else:
         boundary = np.array(boundary)
         if boundary.ndim == 2:
