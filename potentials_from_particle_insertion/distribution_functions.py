@@ -33,6 +33,12 @@ from .geometry import \
     _circle_ring_area_frac_in_circle
 
 #misceleneous small defs
+def _get_rvals(rmin,rmax,dr):
+    """checks default dr and returns array of bin edges"""
+    if dr is None:
+        dr = (rmax-rmin)/20
+    return dr,np.arange(rmin,rmax+dr,dr)
+
 def _calc_squared_dist(coordinates,trialparticle,rmax):
     """pure python loop over coordinate pairs, returns pairwise distances"""
     #naive implementation, slow
@@ -328,7 +334,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmax,dr,boundary,
                 )
     
     #create bin edges and bin centres for r
-    rvals = np.arange(rmin,rmax+dr,dr)
+    dr,rvals = _get_rvals(rmin, rmax, dr)
     rcent = rvals[:-1]+dr/2
     nt = len(coordinates)
     nr = len(rcent)
@@ -616,7 +622,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
                 )
     
     #create bin edges and bin centres for r
-    rvals = np.arange(rmin,rmax+dr,dr)
+    dr,rvals = _get_rvals(rmin,rmax,dr)
     rcent = rvals[:-1]+dr/2
     nt = len(coordinates)
     nr = len(rcent)
@@ -770,7 +776,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmax,dr,boundary,
 def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
                                  pairpotential_binedges=None,
                                  gen_prob_reps=1000,shell_prob_reps=10,
-                                 interpolate=True,use_numba=True):
+                                 interpolate=True,use_numba=True,rmin=0):
     """calculate g(r) from particle insertion method using particle coordinates
     and pairwise interaction potential u(r) (in units of kT). Inserts test-
     particles at a specific r for every real particle
@@ -814,7 +820,7 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
         The number of trialparticles evaluated for each distance bin
 
     """
-    rvals = np.arange(0,rmax+dr,dr)#bins for r / u(r)
+    dr,rvals = _get_rvals(rmin, rmax, dr)
     rcent = rvals[:-1]+dr/2
     nt = len(coordinates)
     nr = len(rcent)
@@ -961,7 +967,7 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
         
     """
     #create bins
-    rvals = np.arange(rmin,rmax+dr,dr)
+    dr,rvals = _get_rvals(rmin, rmax, dr)
     
     #assure array of arrays with first axis as dtype=object and rest floats
     if type(coordinates)==list:#weird syntax but there's no prettier way
@@ -974,9 +980,6 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
         raise TypeError(f"dtype `{type(coordinates)}` of `coordinates` not "
                         "supported, use a list of numpy.array")
         
-    #set default step size
-    if type(dr)==type(dr):
-        dr = (rmax-rmin)/20
         
     #check list of coordinates or only one coordinate set
     if coordinates.ndim == 2:
@@ -994,7 +997,6 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
         #assure list of coordinate sets
         if boundary.ndim==2:
             boundary = np.array([boundary]*len(coordinates))
-    
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
     if periodic_boundary:
@@ -1111,8 +1113,31 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
     
     return rvals,bincounts
 
-
-
+def _check_coordinate_input(coordinates):
+    """checks type and shape of coordinate arrays"""
+    #if already a list, assure all items in it are arrays
+    if type(coordinates)==list:
+        if not all([type(coord)==np.ndarray for coord in coordinates]):
+            coordinates = [np.array(coord) for coord in coordinates]
+    
+    #if array, check that it is a single array (and not a list thereof)
+    elif type(coordinates)==np.ndarray:
+        if not np.can_cast(coordinates[0].dtype,float):
+            raise TypeError(
+                f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "
+                "broadcasted to `float`"
+            )
+    else:
+        raise TypeError(
+            f"dtype `{type(coordinates)}` of `coordinates` not supported, use "
+            "a list of numpy.array"
+        )
+        
+        #assure 3D array for coordinates
+    if coordinates.ndim == 2:
+        coordinates = coordinates[np.newaxis,:,:]
+    
+    return coordinates
 
 def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,periodic_boundary=False,handle_edge=True,
@@ -1188,31 +1213,10 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     """
     
     #create bins
-    rvals = np.arange(rmin,rmax+dr,dr)
+    dr,rvals = _get_rvals(rmin, rmax, dr)
     
-    #assure array of arrays with first axis as dtype=object and rest floats
-    if type(coordinates)==list:#weird syntax but there's no prettier way
-        coordinates = np.array([None]+coordinates,dtype=object)[1:]
-    
-    elif type(coordinates)==np.ndarray:
-        if not np.can_cast(coordinates[0].dtype,float):
-            raise TypeError(
-                f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "
-                "broadcasted to `float`"
-            )
-    else:
-        raise TypeError(
-            f"dtype `{type(coordinates)}` of `coordinates` not supported, use "
-            "a list of numpy.array"
-        )
-    
-    #assure 3D array for coordinates
-    if coordinates.ndim == 2:
-        coordinates = coordinates[np.newaxis,:,:]
-    
-    #set default step size
-    if type(dr)==type(dr):
-        dr = (rmax-rmin)/20
+    #check coordinate input for type and shape
+    coordinates = _check_coordinate_input(coordinates)
     
     #set default boundary as min and max values in dataset
     if boundary is None:
@@ -1343,25 +1347,8 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #create bins
     rvals = np.arange(rmin,rmax+dr,dr)
     
-    #assure array of arrays with first axis as dtype=object and rest floats
-    if type(coordinates)==list:#weird syntax but there's no prettier way
-        coordinates = np.array([None]+coordinates,dtype=object)[1:]
-    
-    elif type(coordinates)==np.ndarray:
-        if not np.can_cast(coordinates[0].dtype,float):
-            raise TypeError(
-                f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "
-                "broadcasted to `float`"
-            )
-    else:
-        raise TypeError(
-            f"dtype `{type(coordinates)}` of `coordinates` not supported, use "
-            "a list of numpy.array"
-        )
-    
-    #assure 3D array for coordinates
-    if coordinates.ndim == 2:
-        coordinates = coordinates[np.newaxis,:,:]
+    #check coordinate input for type and shape
+    coordinates = _check_coordinate_input(coordinates)
     
     #set default step size
     if type(dr)==type(dr):
