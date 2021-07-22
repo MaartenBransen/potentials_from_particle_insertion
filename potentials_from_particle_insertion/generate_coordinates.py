@@ -55,6 +55,40 @@ def _rand_coord_in_circle(boundary_pos,boundary_rad,n=1):
     
     return coords
 
+def _rand_coord_in_sphere(boundary_pos,boundary_rad,n=1):
+    """
+    generate n random coordinates uniformly distributed in a spherical box
+
+    Parameters
+    ----------
+    boundary_pos : tuple of form (y,x)
+        The position of the centre of the circle in which to generate 
+        coordinates
+    boundary_rad : float
+        the radius of the circle in which to generate coordinates
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*3
+        Randomly generated 2D coordinates within the circle
+
+    References
+    ----------
+    https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
+    """
+    r = boundary_rad*np.cbrt(np.random.random_sample(n))
+    theta = 2*np.pi*np.random.random_sample(n)
+    phi = np.arccos(2*np.random.random_sample(n)-1)
+    
+    coords = np.empty((n,3))
+    coords[:,0] = boundary_pos[0] + r*np.cos(phi)
+    coords[:,1] = boundary_pos[1] + r*np.sin(theta) + r*np.sin(phi)
+    coords[:,1] = boundary_pos[2] + r*np.cos(theta) + r*np.sin(phi)
+    
+    return coords
+
 def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
     """Random coordinate from contineous uniform distribution of box given by
     half-open intervals in boundary, where each coordinate is at least `rmin` 
