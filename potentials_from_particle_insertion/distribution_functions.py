@@ -9,6 +9,7 @@ m.bransen@uu.nl
 #external imports
 import numpy as np
 from scipy.spatial import cKDTree
+from warnings import warn
 
 #check numba available
 try:
@@ -935,6 +936,18 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
             print(f'\rcalculating distance histogram g(r) {i+1} of '
                   f'{nf}',end='')
         
+        #check if coords are within boundary
+        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[
+                np.logical_and(
+                    coords>=bound[:,0],
+                    coords<bound[:,1]
+                ).all(axis=1)
+            ]
+        
         #in case of periodic boundary conditions
         if periodic_boundary:
             #set up KDTree for fast neighbour finding
@@ -1100,6 +1113,15 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
                   end='')
          
+        #check if coords are within boundary or raise warning and remove 
+        d = np.sqrt(np.sum((coords - bound[:2])**2,axis=1))
+        if any(d>bound[2]):
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[d<=bound[2]]
+            d = d[d<=bound[2]]    
+        
         #set default neighbor_upper_bound
         if type(neighbors_upper_bound)==type(None):
             k = len(coords)
@@ -1126,7 +1148,7 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 counts[j] = np.histogram(row[msk],bins=rvals)[0]
         boundarycorr=_circle_ring_area_frac_in_circle(
             rvals,
-            np.sqrt(np.sum((coords - bound[:2])**2,axis=1)),
+            d,
             bound[2]
         )
         counts = np.sum(counts/boundarycorr,axis=0)
@@ -1368,6 +1390,18 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
                   end='')
         
+        #check if coords are within boundary
+        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[
+                np.logical_and(
+                    coords>=bound[:,0],
+                    coords<bound[:,1]
+                ).all(axis=1)
+            ]
+        
         if periodic_boundary:
             #set up KDTree for fast neighbour finding
             #shift box boundary corner to origin for periodic KDTree
@@ -1455,11 +1489,11 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         for coord in coordinates:
             bound = np.mean(coord,axis=0)
             rad = np.sqrt(np.sum((coord-bound)**2,axis=1)).max()
-            boundary.append(np.concatenate([bound,rad]))
+            boundary.append([*bound,rad])
         boundary = np.array(boundary)
     else:
         boundary = np.array(boundary)
-        if boundary.ndim == 2:
+        if boundary.ndim == 1:
             boundary = np.broadcast_to(boundary, (len(coordinates),4))
     
     if len(boundary) != nf:
@@ -1480,7 +1514,17 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #print progress
         if not quiet:
-            print('\rcalculating distance histogram g(r) {i+1} of {nf}',end='')
+            print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
+                  end='')
+        
+        #check if coords in boundary, if not raise warning and remove
+        d = np.sqrt(np.sum((bound[:3]-coords)**2,axis=1))
+        if any(d>bound[3]):
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[d<=bound[3]]
+            d = d[d<=bound[3]]
         
         #set up KDTree for fast neighbour finding
         tree = cKDTree(coords)
@@ -1506,11 +1550,6 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             counts = np.zeros((len(dist),len(rvals)-1))
             for j,(row,msk) in enumerate(zip(dist,mask)):
                 counts[j] = np.histogram(row[msk],bins=rvals)[0]
-            
-        #calculate distance from origin of sphere, check if coords in boundary
-        d = np.sqrt(np.sum((bound[:3]-coords)**2,axis=1))
-        if any(d>bound[3]):
-            raise ValueError('coordinates must be within boundary')
         
         #apply correction factor for missing volume to each particle (each row)
         boundarycorr=_sphere_shell_vol_frac_in_sphere(
@@ -1795,6 +1834,18 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
+        
+        #check if coords are within boundary
+        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[
+                np.logical_and(
+                    coords>=bound[:,0],
+                    coords<bound[:,1]
+                ).all(axis=1)
+            ]
         
         #generate new test-particle coordinates for each set
         if avoid_coordinates and avoid_boundary:
@@ -2503,6 +2554,18 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
+        
+        #check if coords are within boundary
+        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[
+                np.logical_and(
+                    coords>=bound[:,0],
+                    coords<bound[:,1]
+                ).all(axis=1)
+            ]
         
         #use input coords or generate new test-particle coordinates for each set
         if type(ins_coords) != type(None):
