@@ -16,6 +16,8 @@ try:
     import numba as nb
     _numba_available = True
 except ImportError:
+    warn("numba not detected, falling back to pure python. Install numba for "
+         "a performance increase.")
     _numba_available = False
 
 #internal imports
@@ -71,18 +73,18 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         to any of the boundaries missing part of their neighbour shells in the 
         dataset. The following options for correcting for this are available:
             
-            * `'none'` or `None` or `False` (all equivalent): do not correct 
+        *   `'none'` or `None` or `False` (all equivalent): do not correct 
             for edge effects at all. Note that in order to calculate the 
             particle density, cuboidal boundaries are assumed even when 
             `boundary` is not specified. This can be overridden by explicitely
             giving the particle density using the `density` parameter.
-            * `'rectangle'`: correct for the missing volume in a square or 
+        *   `'rectangle'`: correct for the missing volume in a square or 
             rectangular boundary.
-            * `'periodic' rectangle'`: like `'rectangle'`, except in periodic 
+        *   `'periodic rectangle'`: like `'rectangle'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other), 
             based on ref [1].
-            * `'circle'`: correct for missing volume in a spherical boundary.
-            * a custom callable function (or list thereof) can be given to 
+        *   `'circle'`: correct for missing volume in a spherical boundary.
+        *   a custom callable function (or list thereof) can be given to 
             correct for arbitrary and/or mixed boundary conditions. This 
             function must take three arguments: a numpy array of bin edges, an
             N×2 numpy array of coordinates and a boundary as specified in 
@@ -181,8 +183,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,handle_edge='cuboid',
         boundary=None,density=None,quiet=False,neighbors_upper_bound=None,
         workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 3D coordinate sets. Provided for convenience. Edge correction based
-    on refs [1] and [2].
+    set of 3D coordinate sets. Provided for convenience.
 
     Parameters
     ----------
@@ -209,20 +210,20 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,handle_edge='cuboid',
         to any of the boundaries missing part of their neighbour shells in the 
         dataset. The following options for correcting for this are available:
             
-            * `'none'` or `None` or `False` (all equivalent): do not correct 
+        *   `'none'` or `None` or `False` (all equivalent): do not correct 
             for edge effects at all. Note that in order to calculate the 
             particle density, cuboidal boundaries are assumed even when 
             `boundary` is not specified. This can be overridden by explicitely
             giving the particle density using `density`.
-            * `'cuboid'`: correct for the missing volume in cuboidal boundary
+        *   `'cuboid'`: correct for the missing volume in cuboidal boundary
             conditions, e.g. a 3D rectangular box with right angles. Based on
             ref. [1]
-            * `'periodic' cuboid'`: like `'cuboid'`, except in periodic 
+        *   `'periodic cuboid'`: like `'cuboid'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other). 
             Based on ref. [2].
-            * `'sphere'`: correct for missing volume in spherical boundary
+        *   `'sphere'`: correct for missing volume in spherical boundary
             conditions
-            * a custom callable function (or list thereof) can be given to 
+        *   a custom callable function (or list thereof) can be given to 
             correct for arbitrary and/or mixed boundary conditions. This 
             function must take three arguments: a numpy array of bin edges, an
             N×3 numpy array of coordinates and a boundary as specified in 
@@ -325,7 +326,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
         n_ins=1000,interpolate=True,avoid_boundary=False,
         avoid_coordinates=False,neighbors_upper_bound=None,workers=1,
         testparticle_func=None):
-    """Calculate g(r) from insertion of test-particles into sets of existing
+    """
+    Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
     
@@ -361,13 +363,13 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
         to any of the boundaries missing part of their neighbour shells in the 
         dataset. The following options for correcting for this are available:
             
-            * `'rectangle'`: correct for the missing volume in a square or 
+        *   `'rectangle'`: correct for the missing volume in a square or 
             rectangular boundary.
-            * `'periodic' rectangle'`: like `'rectangle'`, except in periodic 
+        *   `'periodic' rectangle'`: like `'rectangle'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other), 
             based on ref [2].
-            * `'circle'`: correct for missing volume in a spherical boundary.
-            * a custom callable function (or list thereof) can be given to 
+        *   `'circle'`: correct for missing volume in a spherical boundary.
+        *   a custom callable function (or list thereof) can be given to 
             correct for arbitrary and/or mixed boundary conditions. This 
             function must take three arguments: a numpy array of bin edges, an
             N×2 numpy array of coordinates and a boundary as specified in 
@@ -530,20 +532,20 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
         to any of the boundaries missing part of their neighbour shells in the 
         dataset. The following options for correcting for this are available:
             
-            * `'none'` or `None` or `False` (all equivalent): do not correct 
+        *   `'none'` or `None` or `False` (all equivalent): do not correct 
             for edge effects at all. Note that in order to calculate the 
             particle density, cuboidal boundaries are assumed even when 
             `boundary` is not specified. This can be overridden by explicitely
             giving the particle density using `density`.
-            * `'cuboid'`: correct for the missing volume in cuboidal boundary
+        *   `'cuboid'`: correct for the missing volume in cuboidal boundary
             conditions, e.g. a 3D rectangular box with right angles. Based on
             ref. [2]
-            * `'periodic' cuboid'`: like `'cuboid'`, except in periodic 
+        *   `'periodic' cuboid'`: like `'cuboid'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other). 
             Based on ref. [3].
-            * `'sphere'`: correct for missing volume in spherical boundary
+        *   `'sphere'`: correct for missing volume in spherical boundary
             conditions
-            * a custom callable function (or list thereof) can be given to 
+        *   a custom callable function (or list thereof) can be given to 
             correct for arbitrary and/or mixed boundary conditions. This 
             function must take three arguments: a numpy array of bin edges, an
             N×3 numpy array of coordinates and a boundary as specified in 
@@ -684,7 +686,12 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
 def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
         pairpotential_binedges=None,gen_prob_reps=1000,shell_prob_reps=10,
         interpolate=True,use_numba=True,rmin=0):
-    """calculate g(r) from particle insertion method using particle coordinates
+    """
+    .. warning::
+       This function underwent very minimal testing and is computationally 
+       inefficient. Use at your own risk.
+    
+    calculate g(r) from particle insertion method using particle coordinates
     and pairwise interaction potential u(r) (in units of kT). Inserts test-
     particles at a specific r for every real particle
 
