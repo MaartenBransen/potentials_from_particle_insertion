@@ -935,13 +935,14 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
     
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
         if not quiet:
             print(f'\rcalculating distance histogram g(r) {i+1} of '
                   f'{nf}',end='')
+        
         
         #check if coords are within boundary
         if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
@@ -1016,15 +1017,15 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
                 counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         
         #normalize and add to overall list
-        bincounts.append(counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / \
-                         (density*len(coords)))
+        bincounts += counts / (np.pi*(rvals[1:]**2 - rvals[:-1]**2)) / \
+                         (density*len(coords))
     
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
@@ -1112,7 +1113,7 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
@@ -1161,16 +1162,15 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         counts = np.sum(counts/boundarycorr,axis=0)
         
         #normalize and add to overall list
-        bincounts.append(
+        bincounts += \
             counts / (np.pi*(rvals[1:]**2-rvals[:-1]**2)*density*len(coords))
-        )
     
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
@@ -1212,7 +1212,7 @@ def _rdf_dist_hist_2d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
                          'callable returning one')
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(func,bound,coords) in \
         enumerate(zip(boundaryfunc,boundary,coordinates)):
         
@@ -1255,15 +1255,15 @@ def _rdf_dist_hist_2d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
         
         #normalize and add to overall list
         #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
-        bincounts.append(counts / (np.pi * (rvals[1:]**2 - rvals[:-1]**2))\
-                         / (density*len(coords)))
+        bincounts += counts / (np.pi * (rvals[1:]**2 - rvals[:-1]**2))\
+                         / (density*len(coords))
         
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
@@ -1389,7 +1389,7 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
@@ -1468,15 +1468,15 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #normalize and add to overall list
         #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
-        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
-                         / (density*len(coords)))
+        bincounts += counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
+                         / (density*len(coords))
         
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
@@ -1516,7 +1516,7 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                            for bound,coords in zip(boundary,coordinates)])
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
@@ -1568,15 +1568,15 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
         #normalize and add to overall list
         #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
-        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
-                         / (density*len(coords)))
-        
+        bincounts += counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
+                         / (density*len(coords))
+
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
@@ -1620,7 +1620,7 @@ def _rdf_dist_hist_3d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
                          'callable returning one')
     
     #loop over all sets of coordinates
-    bincounts = []
+    bincounts = np.zeros(len(rvals)-1)
     for i,(func,bound,coords) in \
         enumerate(zip(boundaryfunc,boundary,coordinates)):
         
@@ -1663,15 +1663,15 @@ def _rdf_dist_hist_3d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
         
         #normalize and add to overall list
         #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
-        bincounts.append(counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
-                         / (density*len(coords)))
+        bincounts += counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
+                         / (density*len(coords))
         
     #newline
     if not quiet:
         print()
     
     #average all datasets
-    bincounts = np.mean(bincounts,axis=0)
+    bincounts /= nf
     
     return rvals,bincounts
 
