@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 26 10:56:41 2021
+#%%imports
 
-@author: Maarten
-"""
 import numpy as np
 from warnings import warn
 from scipy.spatial import cKDTree
@@ -17,48 +13,320 @@ from ..geometry import \
     _circle_ring_area_frac_in_rectangle
         
 
-def _check_multicomponent_coordinate_input(coordinates):
-    """checks inputs on whether it is list or list of list like, 
-    and always returns the latter"""
-    #check outer type, must be at least list of np array
-    if type(coordinates) != list:
-        raise TypeError('`coordinates` must be of type `list`')
-    
-    #check if single or multiple independent sets
-    if type(coordinates[0]) == list:
-        if len(set([len(c) for c in coordinates])) != 1:
-            raise ValueError('number of components must remain constant in all'
-                             'of `coordinates`')
-            
-    #if list of arrays, assure list of lists of arrays
-    elif type(coordinates[0]) == np.ndarray:
-        coordinates = [coordinates]
-    else:
-        raise TypeError('`coordinates` must be list of numpy.array or list of '
-                        'list of numpy.array')
-    
-    if len(coordinates[0])==1:
-        warn('dataset containing only single-component data is given')
-    
-    return coordinates
+#%% public definitions
 
 def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
-        density=None,periodic_boundary=False,handle_edge=True,quiet=False,
-        neighbors_upper_bound=None,workers=1):
+        density=None,combinations=None,periodic_boundary=False,
+        handle_edge='rectangle',quiet=False,neighbors_upper_bound=None,
+        workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 2D coordinate sets. Provided for convenience. Edge correction is 
-    fully analytical for both periodic and nonperiodic boundary conditions.
+    set of 2D coordinate sets. Provided for convenience.
 
     Parameters
     ----------
-    coordinates : numpy.array or list-like of numpy.array of floats
-        list of sets of coordinates, where each item along the 0th dimension is
-        a n*2 numpy.array of particle coordinates, where each array is an 
-        independent set of coordinates (e.g. one z-stack, a time step from a 
-        video, etc.), with each element of the array of form  `[y,x]`.  Each 
-        set of coordinates is not required to have the same number of particles
-        and is assumed to share the same boundaries when no boundaries or only
+    coordinates : (list-like of) list-like of numpy.ndarray of floats
+        list-like where each item along the 0th dimension is an N×2 
+        numpy.ndarray of particle coordinates of one of the components, with 
+        each row specifying a particle position in the form [`y`,`x`].
+        Alternatively, a list-like of the above may be given where each item is
+        an independent set of coordinate components (e.g. a time step from a 
+        video), in which case every set must have the same number of components
+        but is not required to have the same number of particles and is assumed
+        to share the same boundaries when no boundaries or only a single set of
+        boundaries are given.
+        
+        For example, for a binary (two-component) system, `coordinates` would 
+        be a list containing two numpy.ndarrays in case of a single dataset, or
+        a list with M lists each containing 2 arrays in case of M independent 
+        datasets.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    handle_edge : one of ['none','rectangle','periodic rectangle'], optional
+        specifies how to correct for edge effects in the radial distribution 
+        function. These edge effects occur due to particles closer than `rmax`
+        to any of the boundaries missing part of their neighbour shells in the 
+        dataset. The following options for correcting for this are available:
+            
+        *   `'none'` or `None` or `False` (all equivalent): do not correct 
+            for edge effects at all. Note that in order to calculate the 
+            particle density, cuboidal boundaries are assumed even when 
+            `boundary` is not specified. This can be overridden by explicitely
+            giving the particle density using the `density` parameter.
+        *   `'rectangle'`: correct for the missing volume in a square or 
+            rectangular boundary.
+        *   `'periodic rectangle'`: like `'rectangle'`, except in periodic 
+            boundary conditions (i.e. one side wraps around to the other), 
+            based on ref [1].
+        
+        The default is 'rectangle'.
+    
+    boundary : array-like, optional
+        positions of the walls that define the bounding box of the coordinates.
+        The format must be given as `((ymin,ymax),(xmin,xmax))` when 
+        `handle_edge` is `'none'`, `'rectangle'` or `'periodic rectangle'`. All
+        components must share the same boundary.
+        
+        If all coordinate sets share the same boundary, a single such boundary 
+        can be given, otherwise a list of such array-likes of the same length 
+        as coordinates can be given for specifying boundaries of each set in 
+        `coordinates` separately. The default is `None` which determines the 
+        smallest set of boundaries encompassing a set of coordinates.
+    density : list of float, optional
+        number density of particles in the box for each of the components to 
+        use for normalizing the g(r) values. The default is the average density
+        based on `coordinates` and `boundary`.
+    components : list of tuple of int
+        list of different combinations of the two components to calculate the 
+        g(r) for, where the first element is the integer index of the component
+        to use for the central reference particles and the second is the index
+        of the component to bincount as neighbouring particles around the 
+        reference particles. The default is all possible combinations of 
+        n components in the order
+        
+            [(0,0), (0,1), ..., (0,n), (1,0), (1,1), ..., (n,n)]
+            
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for reducing memory consumption in datasets with 
+        dimensions much larger than rmax. The default is None, which takes the
+        total number of particles in the coordinate set as upper limit.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `handle_edge='periodic rectangle'`. The default is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : list of numpy.array
+        array of values for the bins of the radial distribution function for 
+        each item in `combinations` (in that order)
+    
+    References
+    ----------
+    [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    periodic boundary conditions.
+    https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
+    """
+    #check the type of edge handling, and pass off to appropriate subfunction:
+    #don't correct for edge effects, but assume rectangular box otherwise
+    if handle_edge is None or handle_edge is False or handle_edge == 'none':
+        return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
+            dr=dr,boundary=boundary,density=density,periodic_boundary=False,
+            handle_edge=False,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in rectangular or square box
+    elif handle_edge == 'rectangle':
+        return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
+            dr=dr,boundary=boundary,density=density,periodic_boundary=False,
+            handle_edge=True,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in periodic boundary conditions in rectangle/square box
+    elif handle_edge == 'periodic rectangle':
+        return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
+            dr=dr,boundary=boundary,density=density,periodic_boundary=True,
+            handle_edge=True,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in circular box
+    elif handle_edge == 'circle':
+        raise NotImplementedError('handling circular edges  is currently not '
+                                  'supported for multicomponent analysis')
+    
+    #correct for edges using arbitrary correction funcs
+    elif callable(handle_edge) or \
+        (type(handle_edge)==list and callable(handle_edge[0])):
+        raise NotImplementedError('custom edge handling is currently not '
+                                  'supported for multicomponent analysis')
+    
+    #error for unrecognised options for handle_edge
+    else:
+        raise ValueError(f'{handle_edge} not a valid option for `handle_edge`')
+    
+def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,handle_edge='cuboid',
+        boundary=None,density=None,quiet=False,neighbors_upper_bound=None,
+        workers=1):
+    """calculates g(r) via a 'conventional' distance histogram method for a 
+    set of 3D coordinate sets. Provided for convenience.
+
+    Parameters
+    ----------
+    coordinates : (list-like of) list-like of numpy.ndarray of floats
+        list-like where each item along the 0th dimension is an N×3 
+        numpy.ndarray of particle coordinates of one of the components, with 
+        each row specifying a particle position in the form [`z`,`y`,`x`].
+        Alternatively, a list-like of the above may be given where each item is
+        an independent set of coordinate components (e.g. a time step from a 
+        series of z-stacks), in which case every set must have the same number 
+        of components but is not required to have the same number of particles 
+        and is assumed to share the same boundaries when no boundaries or only 
         a single set of boundaries are given.
+        
+        For example, for a binary (two-component) system, `coordinates` would 
+        be a list containing two numpy.ndarrays in case of a single dataset, or
+        a list with M lists each containing 2 arrays in case of M independent 
+        datasets.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    handle_edge : one of ['none','cuboid','periodic cuboid'], optional
+        specifies how to correct for edge effects in the radial distribution 
+        function. These edge effects occur due to particles closer than `rmax`
+        to any of the boundaries missing part of their neighbour shells in the 
+        dataset. The following options for correcting for this are available:
+            
+        *   `'none'` or `None` or `False` (all equivalent): do not correct 
+            for edge effects at all. Note that in order to calculate the 
+            particle density, cuboidal boundaries are assumed even when 
+            `boundary` is not specified. This can be overridden by explicitely
+            giving the particle density using `density`.
+        *   `'cuboid'`: correct for the missing volume in cuboidal boundary
+            conditions, e.g. a 3D rectangular box with right angles. Based on
+            ref. [1]
+        *   `'periodic cuboid'`: like `'cuboid'`, except in periodic 
+            boundary conditions (i.e. one side wraps around to the other). 
+            Based on ref. [2].
+        
+        The default is 'cuboid'.
+    
+    boundary : array-like, optional
+        positions of the walls that define the bounding box of the coordinates.
+        The format must be given as `((zmin,zmax),(ymin,ymax),(xmin,xmax))` 
+        when `handle_edge` is `'none'`, `'cuboid'` or `'periodic cuboid'`. All
+        components must share the same boundary.
+        
+        If all coordinate sets share the same boundary a single such boundary 
+        can be given, otherwise a list of such array-likes of the same length 
+        as coordinates can be given for specifying boundaries of each set in 
+        `coordinates` separately. The default is `None` which determines the 
+        smallest set of boundaries encompassing a set of coordinates.
+    density : list of float, optional
+        number density of particles in the box for each of the components to 
+        use for normalizing the g(r) values. The default is the average density
+        based on `coordinates` and `boundary`.
+    components : list of tuple of int
+        list of different combinations of the two components to calculate the 
+        g(r) for, where the first element is the integer index of the component
+        to use for the central reference particles and the second is the index
+        of the component to bincount as neighbouring particles around the 
+        reference particles. The default is all possible combinations of 
+        n components in the order
+        
+            [(0,0), (0,1), ..., (0,n), (1,0), (1,1), ..., (n,n)]
+            
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for reducing memory consumption in datasets with 
+        dimensions much larger than rmax. The default is None, which takes the
+        total number of particles in the coordinate set as upper limit.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `handle_edge='periodic cuboid'`. The default is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : list of numpy.array
+        array of values for the bins of the radial distribution function for 
+        each item in `combinations` (in that order)
+    
+    References
+    ----------
+    [1] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
+    Distribution Function from Particle Positions: An Advanced Analytic 
+    Approach. Analytical Chemistry, 90(23), 13909–13914. 
+    https://doi.org/10.1021/acs.analchem.8b03157
+    
+    [2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    periodic boundary conditions.
+    https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
+    """
+    #check the type of edge handling, and pass off to appropriate subfunction:
+    #don't correct for edge effects, but assume cuboidal box otherwise
+    if handle_edge is None or handle_edge is False or handle_edge == 'none':
+        return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
+            boundary=boundary,density=density,periodic_boundary=False,
+            handle_edge=False,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in cuboidal box
+    elif handle_edge == 'cuboid':
+        return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
+            boundary=boundary,density=density,periodic_boundary=False,
+            handle_edge=True,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in periodic boundary conditions (cube or cuboid)
+    elif handle_edge == 'periodic cuboid':
+        return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
+            boundary=boundary,density=density,periodic_boundary=True,
+            handle_edge=True,quiet=quiet,
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+    
+    #correct for edges in spherical box
+    elif handle_edge == 'sphere':
+        raise NotImplementedError('handling spherical edges  is currently not '
+                                  'supported for multicomponent analysis')
+    
+    #correct for edges using arbitrary correction funcs
+    elif callable(handle_edge) or \
+        (type(handle_edge)==list and callable(handle_edge[0])):
+        raise NotImplementedError('custom edge handling is currently not '
+                                  'supported for multicomponent analysis')
+    
+    #error for unrecognised options for handle_edge
+    else:
+        raise ValueError(f'{handle_edge} not a valid option for `handle_edge`')
+
+#%% private definitions
+
+def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
+        boundary=None,density=None,combinations=None,periodic_boundary=False,
+        handle_edge=True,quiet=False,neighbors_upper_bound=None,workers=1):
+    """calculates g(r) via a 'conventional' distance histogram method for a 
+    different combinations out of multicomponent (e.g. binary, ternary, ...) 
+    2D coordinate sets. Edge correction is fully analytical for both periodic 
+    and nonperiodic boundary conditions.
+
+    Parameters
+    ----------
+    coordinates : (list-like of) list-like of numpy.ndarray of floats
+        list-like where each item along the 0th dimension is an N×2 
+        numpy.ndarray of particle coordinates of one of the components, with 
+        each row specifying a particle position in the form [`y`,`x`].
+        Alternatively, a list-like of the above may be given where each item is
+        an independent set of coordinate components (e.g. a time step from a 
+        video), in which case every set must have the same number of components
+        but is not required to have the same number of particles and is assumed
+        to share the same boundaries when no boundaries or only a single set of
+        boundaries are given.
+        
+        For example, for a binary (two-component) system, `coordinates` would 
+        be a list containing two numpy.ndarrays in case of a single dataset, or
+        a list with M lists each containing 2 arrays in case of M independent 
+        datasets.
     rmin : float, optional
         lower bound for the pairwise distance, left edge of 0th bin. The 
         default is 0.
@@ -74,10 +342,20 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         `coordinates` for specifying boundaries of each set in `coordinates` 
         separately. The default is the min and max values in the dataset along 
         each dimension.
-    density : float, optional
-        number density of particles in the box to use for normalizing the 
-        values. The default is the average density based on `coordinates` and
-        `boundary`.
+    density : list of float, optional
+        number density of particles in the box for each of the components to 
+        use for normalizing the g(r) values. The default is the average density
+        based on `coordinates` and `boundary`.
+    components : list of tuple of int
+        list of different combinations of the two components to calculate the 
+        g(r) for, where the first element is the integer index of the component
+        to use for the central reference particles and the second is the index
+        of the component to bincount as neighbouring particles around the 
+        reference particles. The default is all possible combinations of 
+        n components in the order
+        
+            [(0,0), (0,1), ..., (0,n), (1,0), (1,1), ..., (n,n)]
+            
     periodic_boundary : bool, optional
         whether periodic boundary conditions are used. The default is False.
     handle_edge : bool, optional
@@ -100,13 +378,13 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     -------
     rvals : numpy.array
         bin-edges of the radial distribution function.
-    bincounts : numpy.array
-        values for the bins of the radial distribution function
-        
+    bincounts : list of numpy.array
+        array of values for the bins of the radial distribution function for 
+        each item in `combinations` (in that order)
     """
     #create bins
     rvals = _get_rvals(rmin, rmax, dr)
-    coordinates = _check_multicomponent_coordinate_input(coordinates)
+    coordinates,multistep = _check_multicomponent_coordinate_input(coordinates)
     nf = len(coordinates)
     nc = len(coordinates[0])
     
@@ -166,8 +444,9 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
         density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
-    #create all combinations of components
-    combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
+    #create all combinations of components if not given
+    if combinations is None:
+        combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
     
     #loop over all sets of coordinates
     bincounts = np.zeros((nc**2,len(rvals)-1))
@@ -175,8 +454,11 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #print progress
         if not quiet:
-            print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
-                  end='')
+            if multistep:
+                t = f'\rcalculating distance histogram g(r) {i+1} of {nf}'
+            else:
+                t = '\rcalculating distance histogram g(r)'
+            print(t, end='')
         
         #loop over all combinations of components
         # c0 central reference particles, #c1 the neighbours we are counting
@@ -265,23 +547,32 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     return rvals,tuple(bincounts)
 
 
-def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
-        density=None,periodic_boundary=False,handle_edge=True,quiet=False,
-        neighbors_upper_bound=None,workers=1):
-    """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 3D coordinate sets. Provided for convenience. Edge correction based
-    on refs [1] and [2].
+def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
+        density=None,combinations=None,periodic_boundary=False,
+        handle_edge=True,quiet=False,neighbors_upper_bound=None,workers=1):
+    """calculates g(r) via a 'conventional' distance histogram method for 
+    different combinations out of multicomponent (e.g. binary, ternary, ...) 
+    2D coordinate sets. Edge correction is fully analytical for both periodic 
+    and nonperiodic boundary conditions. Edge correction based on refs [1] and
+    [2].
 
     Parameters
     ----------
-    coordinates : numpy.array or list-like of numpy.array
-        list of sets of coordinates, where each item along the 0th dimension is
-        a n*3 numpy.array of particle coordinates, where each array is an 
-        independent set of coordinates (e.g. one z-stack, a time step from a 
-        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
-        set of coordinates is not required to have the same number of particles
-        and is assumed to share the same boundaries when no boundaries or only
+    coordinates : (list-like of) list-like of numpy.ndarray of floats
+        list-like where each item along the 0th dimension is an N×3 
+        numpy.ndarray of particle coordinates of one of the components, with 
+        each row specifying a particle position in the form [`z`,`y`,`x`].
+        Alternatively, a list-like of the above may be given where each item is
+        an independent set of coordinate components (e.g. a time step from a 
+        series of z-stacks), in which case every set must have the same number 
+        of components but is not required to have the same number of particles 
+        and is assumed to share the same boundaries when no boundaries or only 
         a single set of boundaries are given.
+        
+        For example, for a binary (two-component) system, `coordinates` would 
+        be a list containing two numpy.ndarrays in case of a single dataset, or
+        a list with M lists each containing 2 arrays in case of M independent 
+        datasets.
     rmin : float, optional
         lower bound for the pairwise distance, left edge of 0th bin. The 
         default is 0.
@@ -297,10 +588,20 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         length as coordinates for specifying boundaries of each set in 
         `coordinates` separately. The default is the min and max values in the 
         dataset along each dimension.
-    density : float, optional
-        number density of particles in the box to use for normalizing the 
-        values. The default is the average density based on `coordinates` and
-        `boundary`.
+    density : list of float, optional
+        number density of particles in the box for each of the components to 
+        use for normalizing the g(r) values. The default is the average density
+        based on `coordinates` and `boundary`.
+    components : list of tuple of int
+        list of different combinations of the two components to calculate the 
+        g(r) for, where the first element is the integer index of the component
+        to use for the central reference particles and the second is the index
+        of the component to bincount as neighbouring particles around the 
+        reference particles. The default is all possible combinations of 
+        n components in the order
+        
+            [(0,0), (0,1), ..., (0,n), (1,0), (1,1), ..., (n,n)]
+            
     periodic_boundary : bool, optional
         whether periodic boundary conditions are used. The default is False.
     handle_edge : bool, optional
@@ -323,8 +624,9 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     -------
     rvals : numpy.array
         bin-edges of the radial distribution function.
-    bincounts : numpy.array
-        values for the bins of the radial distribution function
+    bincounts : list of numpy.array
+        array of values for the bins of the radial distribution function for 
+        each item in `combinations` (in that order)
     
     References
     ----------
@@ -339,7 +641,7 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     """
     #create bins
     rvals = _get_rvals(rmin, rmax, dr)
-    coordinates = _check_multicomponent_coordinate_input(coordinates)
+    coordinates,multistep = _check_multicomponent_coordinate_input(coordinates)
     nf = len(coordinates)
     nc = len(coordinates[0])
     
@@ -403,8 +705,9 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             np.mean([len(coords[c])/v for v,coords in zip(vol,coordinates)]) \
                 for c in range(nc)]
     
-    #create all combinations of components
-    combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
+    #create all combinations of components if not given
+    if combinations is None:
+        combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
     
     #loop over all sets of coordinates
     bincounts = np.zeros((nc**2,len(rvals)-1))
@@ -412,8 +715,11 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         
         #print progress
         if not quiet:
-            print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
-                  end='')
+            if multistep:
+                t = f'\rcalculating distance histogram g(r) {i+1} of {nf}'
+            else:
+                t = '\rcalculating distance histogram g(r)'
+            print(t, end='')
         
         #loop over all combinations of components
         # c0 central reference particles, #c1 the neighbours we are counting
@@ -500,3 +806,43 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     return rvals,tuple(bincounts)
 
+#%% private helper functions
+
+def _listlike(var):
+    """returns True if var is list-like, for np.ndarray allows only 1d object 
+    array"""
+    if type(var) in ['list','tuple']:
+        return True
+    if type(var) == np.ndarray:
+        if var.ndim == 1 and var.dtype == object:
+            return True
+    return False
+    
+
+def _check_multicomponent_coordinate_input(coordinates):
+    """checks inputs on whether it is list or list of list like, 
+    and always returns the latter and a flag indicating which it was"""
+    #check outer type, must be at least list of np array
+    if not _listlike(coordinates):
+        raise TypeError('`coordinates` must be of type `list`, `tuple` or a '
+                        '1d numpy.ndarray with `dtype=object`')
+    
+    #check if single or multiple independent sets
+    if _listlike(coordinates[0]):
+        if len(set([len(c) for c in coordinates])) != 1:
+            raise ValueError('number of components must remain constant in all'
+                             'of `coordinates`')
+        multistep = True
+            
+    #if list of coordinate arrays, assure list of lists of arrays
+    elif type(coordinates[0]) == np.ndarray:
+        coordinates = [coordinates]
+        multistep = False
+    else:
+        raise TypeError('`coordinates` must be list of numpy.array or list of '
+                        'list of numpy.array')
+    
+    if len(coordinates[0])==1:
+        warn('dataset containing only single-component data is given')
+    
+    return coordinates,multistep
