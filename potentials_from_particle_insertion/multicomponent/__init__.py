@@ -122,22 +122,22 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #don't correct for edge effects, but assume rectangular box otherwise
     if handle_edge is None or handle_edge is False or handle_edge == 'none':
         return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
-            dr=dr,boundary=boundary,density=density,periodic_boundary=False,
-            handle_edge=False,quiet=quiet,
+            dr=dr,boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=False,handle_edge=False,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in rectangular or square box
     elif handle_edge == 'rectangle':
         return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
-            dr=dr,boundary=boundary,density=density,periodic_boundary=False,
-            handle_edge=True,quiet=quiet,
+            dr=dr,boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=False,handle_edge=True,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in periodic boundary conditions in rectangle/square box
     elif handle_edge == 'periodic rectangle':
         return _rdf_dist_hist_2d_rectangle(coordinates,rmin=rmin,rmax=rmax,
-            dr=dr,boundary=boundary,density=density,periodic_boundary=True,
-            handle_edge=True,quiet=quiet,
+            dr=dr,boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=True,handle_edge=True,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in circular box
@@ -156,8 +156,8 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         raise ValueError(f'{handle_edge} not a valid option for `handle_edge`')
     
 def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,handle_edge='cuboid',
-        boundary=None,density=None,quiet=False,neighbors_upper_bound=None,
-        workers=1):
+        boundary=None,density=None,combinations=None,quiet=False,
+        neighbors_upper_bound=None,workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 3D coordinate sets. Provided for convenience.
 
@@ -267,22 +267,22 @@ def rdf_dist_hist_3d(coordinates,rmin=0,rmax=10,dr=None,handle_edge='cuboid',
     #don't correct for edge effects, but assume cuboidal box otherwise
     if handle_edge is None or handle_edge is False or handle_edge == 'none':
         return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
-            boundary=boundary,density=density,periodic_boundary=False,
-            handle_edge=False,quiet=quiet,
+            boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=False,handle_edge=False,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in cuboidal box
     elif handle_edge == 'cuboid':
         return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
-            boundary=boundary,density=density,periodic_boundary=False,
-            handle_edge=True,quiet=quiet,
+            boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=False,handle_edge=True,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in periodic boundary conditions (cube or cuboid)
     elif handle_edge == 'periodic cuboid':
         return _rdf_dist_hist_3d_cuboid(coordinates,rmin=rmin,rmax=rmax,dr=dr,
-            boundary=boundary,density=density,periodic_boundary=True,
-            handle_edge=True,quiet=quiet,
+            boundary=boundary,density=density,combinations=combinations,
+            periodic_boundary=True,handle_edge=True,quiet=quiet,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers)
     
     #correct for edges in spherical box
@@ -724,7 +724,6 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         #loop over all combinations of components
         # c0 central reference particles, #c1 the neighbours we are counting
         for j,(c0,c1) in enumerate(combinations):
-            
             if periodic_boundary:
                 #set up KDTree for fast neighbour finding
                 #shift box boundary corner to origin for periodic KDTree
@@ -811,7 +810,7 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 def _listlike(var):
     """returns True if var is list-like, for np.ndarray allows only 1d object 
     array"""
-    if type(var) in ['list','tuple']:
+    if type(var) in [list,tuple]:
         return True
     if type(var) == np.ndarray:
         if var.ndim == 1 and var.dtype == object:
