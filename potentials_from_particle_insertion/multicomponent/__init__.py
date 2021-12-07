@@ -688,12 +688,12 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                 )
     
     #remove coords outside of boundary
-    for i,coords in enumerate(coordinates):
+    for i,(coords,bound) in enumerate(zip(coordinates,boundary)):
         for j,c in enumerate(coords):
             if (c < bound[:,0]).any() or (c >= bound[:,1]).any():
                 warn('not all coordinates are within boundary in '
-                     f'coordinate set {i}, ignoring spurious coords',
-                     RuntimeWarning)
+                     f'coordinate set {i}, component {j}. Ignoring spurious '
+                     'coords',RuntimeWarning)
                 coordinates[i][j] = c[
                     np.logical_and(c >= bound[:,0], c < bound[:,1]).all(axis=1)
                 ]
