@@ -681,7 +681,7 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     #check rmax and boundary for edge handling without periodic boundaries
     else:
         for bound in boundary:
-            if rmax > max(bound[:,1]-bound[:,0])/2:
+            if rmax > max(bound[:,1]-bound[:,0]):
                 raise ValueError(
                     'rmax cannot be larger than half the largest dimension in '
                     f'boundary, use rmax < {max(bound[:,1]-bound[:,0])/2}'
