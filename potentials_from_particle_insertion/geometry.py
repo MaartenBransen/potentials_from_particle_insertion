@@ -338,6 +338,7 @@ def _circle_ring_area_frac_in_circle(r,distances,boundaryrad):
         particle which lies inside of the boundaries, i.e. A_in/A_tot
     """
     #https://diego.assencio.com/?index=8d6ca3d82151bad815f78addf9b5c1c6
+    #note that I have verified it does not matter to switch r1 and r2
     
     #initialize zeros array with row for each particle and column for each r
     nrow,ncol = len(distances),len(r)
@@ -355,32 +356,16 @@ def _circle_ring_area_frac_in_circle(r,distances,boundaryrad):
     mask2 = (r>boundaryrad)[np.newaxis,:] & (distances[:,np.newaxis] <=  (r - boundaryrad)[np.newaxis,:])
     area[mask2] += np.pi*boundaryrad**2
     
-    #all other places
+    #all other places, calculate intersection
     mask1 = ~np.logical_or(mask1,mask2)
-    
-    #calculate intersection area where r<=boundaryrad
-    mask2 = mask1 & np.broadcast_to((r <= boundaryrad)[np.newaxis,:],(nrow,ncol))
-    
-    r1 = boundaryrad
-    r2 = np.broadcast_to(r[np.newaxis,:],(nrow,ncol))[mask2]
-    d = np.broadcast_to(distances[:,np.newaxis],(nrow,ncol))[mask2]
-    d1 = (r1**2-r2**2+d**2)/(2*d)
-    d2 = d - d1
-    
-    area[mask2] += \
-        r1**2 * np.arccos(d1/r1) - d1 * np.sqrt(r1**2-d1**2) +\
-        r2**2 * np.arccos(d2/r2) - d2 * np.sqrt(r2**2-d2**2)
-    
-    #calculate intersection area where r>boundaryrad
-    mask2 = mask1 & np.broadcast_to((r >  boundaryrad)[np.newaxis,:],(nrow,ncol))
 
-    r1 = np.broadcast_to(r[np.newaxis,:],(nrow,ncol))[mask2]
-    r2 = boundaryrad
-    d = np.broadcast_to(distances[:,np.newaxis],(nrow,ncol))[mask2]
+    r1 = boundaryrad
+    r2 = np.broadcast_to(r[np.newaxis,:],(nrow,ncol))[mask1]
+    d = np.broadcast_to(distances[:,np.newaxis],(nrow,ncol))[mask1]
     d1 = (r1**2-r2**2+d**2)/(2*d)
     d2 = d - d1
     
-    area[mask2] += \
+    area[mask1] += \
         r1**2 * np.arccos(d1/r1) - d1 * np.sqrt(r1**2-d1**2) +\
         r2**2 * np.arccos(d2/r2) - d2 * np.sqrt(r2**2-d2**2)
     
