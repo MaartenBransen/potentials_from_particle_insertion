@@ -293,9 +293,7 @@ def _circle_ring_area_frac_in_rectangle_periodic(r,boxsize):
     Returns
     -------
     numpy.array of float
-        Effective volume for each interval r -> r+dr in r. Values beyond 
-        sqrt(2)/2 boxsize are padded with numpy.nan values.
-
+        Effective volume for each interval r -> r+dr in r.
     """
     
     #scale r to boxsize
@@ -308,8 +306,8 @@ def _circle_ring_area_frac_in_rectangle_periodic(r,boxsize):
     mask = (1/2 < r) & (r <= np.sqrt(2)/2)
     area[mask] -= 4*r[mask]*(r[mask]*np.arccos(1/(2*r[mask])) - np.sqrt(1-1/(4*r[mask]**2))/2)
     
-    #beyond sqrt(2)/2 boxlen there is no useful info
-    area[np.sqrt(2)/2 < r] = np.nan
+    #beyond sqrt(2)/2 boxlen there is just the box volume
+    area[np.sqrt(2)/2 < r] = 1
     
     part_ring = area[1:] - area[:-1]
     full_ring = np.pi*(r[1:]**2 - r[:-1]**2)
