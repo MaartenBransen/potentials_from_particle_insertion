@@ -3,7 +3,7 @@ Maarten Bransen, 2020
 m.bransen@uu.nl
 """
 
-__version__ = '0.2'
+__version__ = '0.5.0'
 
 from .pairpotential_iterator import run_iteration
 from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_exact_3d,\
