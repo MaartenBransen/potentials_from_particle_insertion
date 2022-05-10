@@ -4,8 +4,9 @@ import numpy as np
 from warnings import warn
 from scipy.spatial import cKDTree
 from ..distribution_functions import \
-    _numba_available,_get_rvals,\
-    _apply_hist_nb
+    _numba_available,_get_rvals
+if _numba_available:
+    from ..distribution_functions import _apply_hist_nb
 from ..geometry import \
     _circle_ring_area_frac_in_rectangle_periodic,\
     _sphere_shell_vol_frac_in_cuboid,\
