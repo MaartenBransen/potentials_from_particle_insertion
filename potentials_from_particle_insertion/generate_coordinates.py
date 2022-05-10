@@ -22,6 +22,72 @@ def _rand_coord_in_box(boundary,n=1):
     """
     return np.random.random_sample((n,len(boundary)))*\
         (boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
+        
+def _rand_coord_in_circle(boundary_pos,boundary_rad,n=1):
+    """
+    generate n random coordinates uniformly distributed in the box defined by
+    boundary
+
+    Parameters
+    ----------
+    boundary_pos : tuple of form (y,x)
+        The position of the centre of the circle in which to generate 
+        coordinates
+    boundary_rad : float
+        the radius of the circle in which to generate coordinates
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*2
+        Randomly generated 2D coordinates within the circle
+
+    References
+    ----------
+    https://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly/50746409#50746409
+    """
+    r = boundary_rad*np.sqrt(np.random.random_sample(n))
+    theta = 2*np.pi*np.random.random_sample(n)
+    coords = np.empty((n,2))
+    coords[:,0] = boundary_pos[0] + r*np.sin(theta)
+    coords[:,1] = boundary_pos[1] + r*np.cos(theta)
+    
+    return coords
+
+def _rand_coord_in_sphere(boundary_pos,boundary_rad,n=1):
+    """
+    generate n random coordinates uniformly distributed in a spherical box
+
+    Parameters
+    ----------
+    boundary_pos : tuple of form (y,x)
+        The position of the centre of the circle in which to generate 
+        coordinates
+    boundary_rad : float
+        the radius of the circle in which to generate coordinates
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*3
+        Randomly generated 2D coordinates within the circle
+
+    References
+    ----------
+    https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
+    """
+    r = boundary_rad*np.cbrt(np.random.random_sample(n))
+    theta = 2*np.pi*np.random.random_sample(n)
+    phi = np.arccos(2*np.random.random_sample(n)-1)
+    
+    coords = np.empty((n,3))
+    coords[:,0] = boundary_pos[0] + r*np.cos(phi)
+    coords[:,1] = boundary_pos[1] + r*np.sin(theta) + r*np.sin(phi)
+    coords[:,1] = boundary_pos[2] + r*np.cos(theta) + r*np.sin(phi)
+    
+    return coords
 
 def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
     """Random coordinate from contineous uniform distribution of box given by
@@ -118,3 +184,33 @@ def _rand_coord_on_sphere(npoints=1,radius=1,origin=[0,0,0]):
     vec = radius * vec / np.linalg.norm(vec, axis=0)
     coord = np.array([list(origin)]*npoints)+vec.T
     return coord
+
+def _coord_grid_in_box(boundary,n=1):
+    """
+    generate approximately n coordinates on a uniformly distributed grid in the
+    box defined by boundary, excluding values at the boundaries. n is 
+    approximate since an integer number of equally sized steps along each 
+    dimension is needed
+
+    Parameters
+    ----------
+    boundary : np.array of form ((zmin,zmax),(ymin,ymax),(xmin,xmax))
+        The half-open interval in which to generate the coordinates, can have
+        any number of dimensions
+    n : int, optional
+        The number of coordinates to generate. The default is 1.
+        
+    Returns
+    -------
+    numpy.array of n*ndim
+        Randomly generated coordinates in box of ndim dimension
+
+    """
+    edge_lengths = boundary[:,1]-boundary[:,0]
+    n_per_dim = np.round(n**(1/3)*edge_lengths/np.product(edge_lengths)**(1/3)).astype(np.uint8)
+    n_per_dim[n_per_dim<1] = 1
+    steps = [np.linspace(dmin,dmax,dn+1,endpoint=False)[1:] 
+             for dmin,dmax,dn in zip(boundary[:,0],boundary[:,1],n_per_dim)]
+    return np.transpose([dim.ravel() for dim in np.meshgrid(*steps)])
+    
+    
