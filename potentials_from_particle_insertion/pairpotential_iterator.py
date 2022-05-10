@@ -7,15 +7,19 @@ m.bransen@uu.nl
 
 #external imports
 import numpy as np
+from scipy.optimize import curve_fit
 
 #internal imports
-from .distribution_functions import rdf_insertion_binned_3d,rdf_insertion_binned_2d
+from .distribution_functions import (
+    rdf_insertion_binned_3d,
+    rdf_insertion_binned_2d,
+    _get_rvals
+)
 
 #defs
-def run_iteration(coordinates,pair_correlation_func,boundary,
-                  initial_guess=None,rmin=0,rmax=20,dr=0.5,
-                  convergence_tol=1e-5,max_iterations=100,zero_clip=1e-20,
-                  regulate=False,**kwargs):
+def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
+                  rmax=10,dr=None,convergence_tol=1e-5,max_iterations=100,
+                  zero_clip=1e-20,regulate=False,**kwargs):
     """
     Run the algorithm to solve for the pairwise potential that most accurately
     reproduces the radial distribution function using test-particle insertion,
@@ -91,8 +95,8 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
     """
     
     #create values for bin edges and centres of r
-    rvals = np.arange(rmin,rmax+dr,dr)
-    rcent = rvals[:-1]+dr/2
+    rvals = _get_rvals(rmin,rmax,dr)
+    rcent = (rvals[1:]+rvals[:-1])/2
     
     #check inputs
     if len(pair_correlation_func) != len(rcent):
@@ -102,19 +106,29 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         initial_guess = np.zeros(len(rcent))
     
     #check dimensionality, select appropriate rdf_insertion routine
-    if len(boundary) == 2:
+    if type(coordinates)==list:
+        dims = np.shape(coordinates[0])[1]
+    else:
+        dims = np.shape(coordinates)[1]
+    
+    if dims == 2:
         rdf_insertion_binned = rdf_insertion_binned_2d
-    elif len(boundary) == 3:
+    elif dims == 3:
         rdf_insertion_binned = rdf_insertion_binned_3d
     else:
-        raise ValueError('data and boundaries must be 2- or 3-dimensional')
+        raise ValueError('array(s) in `coordinates` must have 2 or 3 columns')
       
     #set up for 0th iteration seperately
     pairpotential = [initial_guess]
     pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
-    newpaircorrelation,_ = rdf_insertion_binned(coordinates,initial_guess,
-                                                rmax,dr,boundary,rmin=rmin,
-                                                **kwargs)
+    _,newpaircorrelation,_ = rdf_insertion_binned(
+        coordinates,
+        initial_guess,
+        rmin=rmin,
+        rmax=rmax,
+        dr=dr,
+        **kwargs
+    )
     newpaircorrelation[newpaircorrelation<zero_clip] = zero_clip#avoid deviding by zero
     paircorrelation = [newpaircorrelation]
     chi_squared = [np.mean((newpaircorrelation - pair_correlation_func)**2)]
@@ -133,7 +147,7 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
                     np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation
                 ],
                 axis=0,
-                weights=[0 if i<2 else 1, 1/min([i,10])]
+                weights=[0 if i<2 else 1, 1/min([i,20])]
                 )
         else:
              newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
@@ -143,14 +157,14 @@ def run_iteration(coordinates,pair_correlation_func,boundary,
         pairpotential.append(newpotential)
         
         #use it to calculate the new g(r)
-        newpaircorrelation,c = rdf_insertion_binned(
+        _,newpaircorrelation,c = rdf_insertion_binned(
             coordinates,
             newpotential,
-            rmax,
-            dr,
-            boundary,
             rmin=rmin,
-            **kwargs)
+            rmax=rmax,
+            dr=dr,
+            **kwargs
+        )
         counters.append(c)
         newpaircorrelation[newpaircorrelation<1e-10] = 1e-10
         #newpaircorrelation[newpaircorrelation>20] = 20
