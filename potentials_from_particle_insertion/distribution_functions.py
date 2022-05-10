@@ -325,7 +325,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
         handle_edge='rectangle',boundary=None,pairpotential_binedges=None,
         n_ins=1000,interpolate=True,avoid_boundary=False,
         avoid_coordinates=False,neighbors_upper_bound=None,workers=1,
-        testparticle_func=None):
+        testparticle_func=None,**kwargs):
     """
     Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
@@ -460,7 +460,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             periodic_boundary=False,rmin=rmin,rmax=rmax,
             dr=dr,boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges in periodic boundary conditions in rectangle/square box
     elif handle_edge == 'periodic rectangle':
@@ -468,7 +469,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             periodic_boundary=False,rmin=rmin,rmax=rmax,dr=dr,
             boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges in circular box
     elif handle_edge == 'circle':
@@ -476,7 +478,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             rmin=rmin,rmax=rmax,dr=dr,boundary=boundary,
             pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
             interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges using arbitrary correction funcs
     elif callable(handle_edge) or \
@@ -485,7 +488,8 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             handle_edge,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
             boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #error for unrecognised options for handle_edge
     else:
@@ -495,7 +499,7 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
         handle_edge='cuboid',boundary=None,pairpotential_binedges=None,
         n_ins=1000,interpolate=True,avoid_boundary=False,
         avoid_coordinates=False,neighbors_upper_bound=None,workers=1,
-        testparticle_func=None):
+        testparticle_func=None,**kwargs):
     """Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -641,7 +645,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             dr=dr,boundary=boundary,
             pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
             interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges in cubic or cuboidal box
     elif handle_edge == 'cuboid':
@@ -650,7 +655,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             dr=dr,boundary=boundary,
             pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
             interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges in periodic boundary conditions in cubic/cuboidal box
     elif handle_edge == 'periodic cuboid':
@@ -659,7 +665,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             dr=dr,boundary=boundary,
             pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
             interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges in spherical box
     elif handle_edge == 'sphere':
@@ -667,7 +674,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             rmin=rmin,rmax=rmax,dr=dr,boundary=boundary,
             pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
             interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #correct for edges using arbitrary correction funcs
     elif callable(handle_edge) or \
@@ -676,7 +684,8 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             handle_edge,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
             boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
-            neighbors_upper_bound=neighbors_upper_bound,workers=workers)
+            neighbors_upper_bound=neighbors_upper_bound,workers=workers,
+            **kwargs)
     
     #error for unrecognised options for handle_edge
     else:
@@ -1843,7 +1852,7 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #check if coords are within boundary
-        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+        if (coords<bound[:,0]).any() or (coords>bound[:,1]).any():
             print()#newline
             warn('not all coordinates are within boundary in coordinate set '
                  f'{i}, ignoring spurious coords',RuntimeWarning)
@@ -2563,7 +2572,7 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #check if coords are within boundary
-        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+        if (coords<bound[:,0]).any() or (coords>bound[:,1]).any():
             print()#newline
             warn('not all coordinates are within boundary in coordinate set '
                  f'{i}, ignoring spurious coords',RuntimeWarning)
