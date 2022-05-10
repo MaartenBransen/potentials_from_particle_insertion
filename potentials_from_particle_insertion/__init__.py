@@ -7,9 +7,6 @@ __version__ = '0.5.0'
 
 from .pairpotential_iterator import (
     run_iteration,
-    run_iterator_fitfunction,
-    run_iterator_fitfunction2,
-    run_iterator_fitfunction3,
 )
 
 from .distribution_functions import (
