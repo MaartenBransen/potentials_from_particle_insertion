@@ -80,6 +80,8 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     paircorrelation : list of list of float
         the values for the pair correlation function from test-particle
         insertion for each iteration
+    counts : list of list of int
+        number of pair counts contributing to each bin in each iteration
     
     References
     ----------
@@ -121,7 +123,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     #set up for 0th iteration seperately
     pairpotential = [initial_guess]
     pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
-    _,newpaircorrelation,_ = rdf_insertion_binned(
+    _,newpaircorrelation,c = rdf_insertion_binned(
         coordinates,
         initial_guess,
         rmin=rmin,
@@ -136,7 +138,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     
     #start the main iterative loop
     i = 1
-    counters = []
+    counters = [c]
     while i < max_iterations:
         
         #calculate the new pairwise potential, with relaxation
