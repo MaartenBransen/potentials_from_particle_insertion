@@ -37,7 +37,7 @@ binedges,binvals = rdf_dist_hist_3d(
 bincent = (binedges[1:]+binedges[:-1])/2
 
 #plot rdf
-plt.figure()
+plt.figure('distance histogram g(r)')
 plt.plot(bincent,binvals,'-r',label='dist hist')
 plt.xlabel('r ($\mathrm{\mu m}$)')
 plt.ylabel('g(r)')
@@ -55,7 +55,7 @@ error,potential,rdf,counts = run_iteration(
     rmin=rmin,
     rmax=rmax,
     dr=dr,
-    max_iterations=10,
+    max_iterations=5,
     convergence_tol=1e-6,
     n_ins=500,
     regulate=True,
@@ -68,18 +68,18 @@ cmap = get_cmap('jet')
 colors = [cmap(i/(len(error)-1))[:3]+(0.3,) for i in range(len(error))]
 
 #plot all iterations on top of eachother
-fig = plt.figure()
+fig = plt.figure('g(r) evolution')
 plt.plot(bincent,binvals,label='distance histogram',color='k')
 [plt.plot(bincent,rdf[i],label='particle insertion {:}'.format(i),color=colors[i]) for i in range(len(error))]
 plt.xlim(rmin,rmax)
-plt.ylim(0,1.1)
+plt.ylim([0,1.1])
 plt.xlabel('r ($\mathrm{\mu m}$)')
 plt.ylabel('g(r)')
 plt.tight_layout()
 plt.show()
 
 #plot u(r) for all iterations on top of eachother
-fig = plt.figure()
+fig = plt.figure('u(r) evolution')
 [plt.plot(bincent,potential[i],label='particle insertion {:}'.format(i),color=colors[i]) for i in range(len(error))]
 plt.xlim(rmin,rmax)
 plt.xlabel('r ($\mathrm{\mu m}$)')
@@ -88,7 +88,7 @@ plt.tight_layout()
 plt.show()
 
 #plot chi / error as function of iteration number
-fig=plt.figure()
+fig=plt.figure('error')
 plt.plot(range(1,len(error)+1),error)
 plt.xscale('log')
 plt.yscale('log')
@@ -98,20 +98,20 @@ plt.tight_layout()
 plt.show()
 
 #plot distance histogram and last iteration together
-plt.figure()
+plt.figure('final g(r)')
 plt.axhline(1,color='k',linewidth=0.75)
 plt.plot(bincent,binvals,'-r',label='distance histogram')
 plt.plot(bincent,rdf[-1],'o',color='k',markerfacecolor='none',label='final iteration')
 plt.xlabel('$r$ ($\mathrm{\mu m}$)')
 plt.ylabel('$g(r)$')
 plt.xlim(rmin,rmax)
-plt.ylim(0,1.1)
+plt.ylim([0,1.1])
 plt.legend()
 plt.tight_layout()
 plt.show()
 
 #plot u(r) of last iteration
-plt.figure()
+plt.figure('final pair potential')
 plt.axhline(0,color='k',linewidth=0.75)
 plt.plot(bincent,potential[-1],'-o',color='k',markeredgecolor='k',markerfacecolor='none')
 plt.xlabel('$r$ ($\mathrm{\mu m}$)')
