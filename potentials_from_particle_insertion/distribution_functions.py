@@ -466,7 +466,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     #correct for edges in periodic boundary conditions in rectangle/square box
     elif handle_edge == 'periodic rectangle':
         return _rdf_insertion_binned_2d_rectangle(coordinates, pairpotential, 
-            periodic_boundary=False,rmin=rmin,rmax=rmax,dr=dr,
+            periodic_boundary=True,rmin=rmin,rmax=rmax,dr=dr,
             boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers,
