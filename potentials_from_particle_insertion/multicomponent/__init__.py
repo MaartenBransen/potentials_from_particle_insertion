@@ -3,16 +3,28 @@
 import numpy as np
 from warnings import warn
 from scipy.spatial import cKDTree
-from ..distribution_functions import \
-    _numba_available,_get_rvals
+
+#internal imports
+from ..distribution_functions import _numba_available, _get_rvals
+
 if _numba_available:
     from ..distribution_functions import _apply_hist_nb
-from ..geometry import \
-    _circle_ring_area_frac_in_rectangle_periodic,\
-    _sphere_shell_vol_frac_in_cuboid,\
-    _sphere_shell_vol_frac_in_cuboid_periodic,\
-    _circle_ring_area_frac_in_rectangle
-        
+
+from ..geometry import (
+    _circle_ring_area_frac_in_rectangle_periodic,
+    _sphere_shell_vol_frac_in_cuboid,
+    _sphere_shell_vol_frac_in_cuboid_periodic,
+    _circle_ring_area_frac_in_rectangle,
+)
+       
+from ..generate_coordinates import (
+    _rand_coord_in_box,
+    _rand_coord_at_dist,
+    _coord_grid_in_box,
+    #_rand_coord_in_circle,
+    #_rand_coord_in_sphere,
+    #_rand_coord_on_sphere,
+)
 
 #%% public definitions
 
@@ -676,6 +688,179 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             **kwargs)
     '''
 
+#defs
+def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
+                  rmax=10,dr=None,convergence_tol=1e-5,max_iterations=100,
+                  zero_clip=1e-20,regulate=False,combinations=None,**kwargs):
+    """
+    Run the algorithm to solve for the pairwise potential that most accurately
+    reproduces the radial distribution function using test-particle insertion,
+    as described in ref. [1]. 
+
+    Parameters
+    ----------
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]` or 
+        `[y,x]` in case of 2D data. Each set of coordinates is not required to 
+        have the same number of particles but all stacks must share the same 
+        bounding box as given by `boundary`, and all coordinates must be within
+        this bounding box.
+    pair_correlation_func : list of float
+        bin values for the true pair correlation function that the algorithm 
+        will try to match iteratively.
+    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
+        positions of the walls that define the bounding box of the coordinates.
+        Number of dimensions must match coordinates.
+    initial_guess : list of float, optional
+        Initial guess for the particle potential on the 0th iteration. The 
+        default is None which gives 0 in each bin.
+    rmin : float, optional
+        left edge of the smallest bin in interparticle distance r to consider.
+        The default is 0.
+    rmax : float, optional
+        Right edge of the largest bin in interparticle distance r to consider.
+        The default is 20.
+    dr : float, optional
+        Stepsize or bin width in interparticle distance r. The default is 0.5.
+    convergence_tol : float, optional
+        target value for χ², if it dips below this value the iteration is 
+        considered to be converged and ended. The default is `1e-5`.
+    max_iterations : int, optional
+        Maximum number of iterations after which the algorithm is ended. The
+        default is 100.
+    zero_clip : float, optional
+        values below the value of zero-clip are set to this value to avoid
+        devision by zero errors. The default is `1e-20`.
+    regulate : bool, optional
+        if True, use regularization to more gently nudge towards the input g(r)
+        at the cost of slower convergence. Experimental option. The default is
+        `False`.
+    **kwargs : key=value
+        Additional keyword arguments are passed on to `rdf_insertion_binned_2d`
+        or `rdf_insertion_binned_3d`
+
+    Returns
+    -------
+    χ² : list of float
+        summed squared error in the pair correlation function for each 
+        iteration
+    pairpotential : list of list of float
+        the values for the pair potential in each bin for each iteration
+    paircorrelation : list of list of float
+        the values for the pair correlation function from test-particle
+        insertion for each iteration
+    counts : list of list of int
+        number of pair counts contributing to each bin in each iteration
+    
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
+    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
+    Microscopy. Physical Review Letters, 123(9), 098002. 
+    https://doi.org/10.1103/PhysRevLett.123.098002
+    
+    See also
+    --------
+    rdf_insertion_binned_2d : 2D routine for g(r) from test-particle insertion
+    rdf_insertion_binned_3d : 3D routine for g(r) from test-particle insertion
+    """
+    
+    #check coords
+    coordinates,_ = _check_multicomponent_coordinate_input(coordinates)
+    
+    #create values for bin edges and centres of r
+    rvals = _get_rvals(rmin,rmax,dr)
+    rcent = (rvals[1:]+rvals[:-1])/2
+    nc = len(coordinates[0])
+    
+    #create all combinations of components if not given
+    if combinations is None:
+        combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
+    
+    #check inputs
+    if any([len(p) != len(rcent) for p in pair_correlation_func]):
+        raise ValueError('lenght pair_correlation_func does not match rmax and dr')
+    
+    if initial_guess is None:
+        initial_guess = np.zeros(len(combinations),len(rcent))
+    
+    #check dimensionality, select appropriate rdf_insertion routine
+    dims = np.shape(coordinates[0][0])[1]
+
+    if dims == 2:
+        rdf_insertion_binned = rdf_insertion_binned_2d
+    elif dims == 3:
+        rdf_insertion_binned = rdf_insertion_binned_3d
+    else:
+        raise ValueError('array(s) in `coordinates` must have 2 or 3 columns')
+      
+    #set up for 0th iteration seperately
+    pairpotential = [initial_guess]
+    pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
+    _,newpaircorrelation,c = rdf_insertion_binned(
+        coordinates,
+        initial_guess,
+        rmin=rmin,
+        rmax=rmax,
+        dr=dr,
+        **kwargs
+    )
+    newpaircorrelation[newpaircorrelation<zero_clip] = zero_clip#avoid deviding by zero
+    paircorrelation = [newpaircorrelation]
+    chi_squared = [np.mean((newpaircorrelation - pair_correlation_func)**2)]
+    print('\riteration 0, χ²={:4g}'.format(chi_squared[-1]))
+    
+    #start the main iterative loop
+    i = 1
+    counters = [c]
+    while i < max_iterations:
+        
+        #calculate the new pairwise potential, with relaxation
+        if regulate:
+            newpotential = np.average(
+                [
+                    np.exp(-pairpotential[-1]),
+                    np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation
+                ],
+                axis=0,
+                weights=[0 if i<4 else 1, 1 if i<4 else 1/min([(i-3)**0.5,20])]
+                )
+        else:
+             newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
+
+        newpotential[newpotential<zero_clip] = zero_clip
+        newpotential = -np.log(newpotential)
+        pairpotential.append(newpotential)
+        
+        #use it to calculate the new g(r)
+        _,newpaircorrelation,c = rdf_insertion_binned(
+            coordinates,
+            newpotential,
+            rmin=rmin,
+            rmax=rmax,
+            dr=dr,
+            **kwargs
+        )
+        counters.append(c)
+        newpaircorrelation[newpaircorrelation<1e-10] = 1e-10
+        #newpaircorrelation[newpaircorrelation>20] = 20
+        paircorrelation.append(newpaircorrelation)
+        
+        #calculate summed squared error
+        chi_squared.append(np.mean((newpaircorrelation - pair_correlation_func)**2))
+        
+        print('\riteration {:}, χ²={:4g}'.format(i,chi_squared[-1]))
+        if chi_squared[-1] < convergence_tol:
+            break
+        
+        i += 1
+    
+    return chi_squared,pairpotential,paircorrelation,counters
+
+
 #%% private dist hist definitions
 
 def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
@@ -1187,7 +1372,7 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     dr=None,boundary=None,pairpotential_binedges=None,n_ins=1000,
     interpolate=True,periodic_boundary=False,ins_coords=None,insert_grid=False,
     avoid_boundary=False,avoid_coordinates=False,neighbors_upper_bound=None,
-    workers=1,combinations=None):
+    workers=1):
     """Calculate g(r) from insertion of test-particles into sets of existing
     3D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
@@ -1335,23 +1520,25 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
                     f'boundary, use rmax < {max(bound[:,1]-bound[:,0])/2}'
                 )
 
+    if type(pairpotential_binedges) is None:
+        pairpotential_binedges = rvals
+    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+
     #init function that returns energy from list of pairwise distances
     #if function is given, use that
-    potfun = []
+    pot_fun = []
     for p in pairpotential:
         if callable(p):
-            potfun.append(p)
-        elif type(pairpotential_binedges) is None:
-            pairpotential_binedges = rvals
-        pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-        
-        if interpolate:#linearly interpolate pair potential between points
-            pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
+            pot_fun.append(p)
+        elif interpolate:#linearly interpolate pair potential between points
+            pot_fun.append(lambda dist: np.interp(
+                dist,pairpotential_bincenter,pairpotential))
         else:#get pair potential from nearest bin (round r to bincenter)
             from scipy.interpolate import interp1d    
-            pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                               kind='nearest',bounds_error=False,
-                               fill_value='extrapolate')
+            pot_fun.append(
+                interp1d(
+                    pairpotential_bincenter,pairpotential,kind='nearest',
+                    bounds_error=False,fill_value='extrapolate'))
     
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
@@ -1362,27 +1549,32 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     if insert_grid:
         base_n_ins = n_ins
     
+    #create all combinations of components if not given
+    combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
+    
     #initialize arrays to store values
-    counter = np.zeros(nr)
-    pair_correlation = np.zeros(nr)
+    counter = np.zeros(len(combinations),nr)
+    pair_correlation = np.zeros(len(combinations),nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #check if coords are within boundary
-        if (coords<bound[:,0]).any() or (coords>bound[:,1]).any():
-            print()#newline
-            warn('not all coordinates are within boundary in coordinate set '
-                 f'{i}, ignoring spurious coords',RuntimeWarning)
-            coords = coords[
-                np.logical_and(
-                    coords>=bound[:,0],
-                    coords<bound[:,1]
-                ).all(axis=1)
-            ]
+        for j,coord in enumerate(coords):
+            if (coord<bound[:,0]).any() or (coord>bound[:,1]).any():
+                print()#newline
+                warn('not all coordinates are within boundary in coordinate '
+                     f'set {i}, component {j}, ignoring spurious coords',
+                     RuntimeWarning)
+                coords[j] = coord[
+                    np.logical_and(
+                        coord>=bound[:,0],
+                        coord<bound[:,1]
+                    ).all(axis=1)
+                ]
         
         #use input coords or generate new test-particle coordinates for each set
-        if type(ins_coords) != type(None):
+        if not ins_coords is None:
             trialparticles = ins_coords
             n_ins = len(ins_coords)
         elif insert_grid and avoid_boundary:
@@ -1392,97 +1584,109 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
             trialparticles = _coord_grid_in_box(bound,n=base_n_ins)
             n_ins = len(trialparticles)
         elif avoid_coordinates and avoid_boundary:
-            trialparticles = _rand_coord_at_dist(reduced_boundary[i],coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(reduced_boundary[i],np.concatenate(coords),rmin,n=n_ins)
         elif avoid_coordinates:
-            trialparticles = _rand_coord_at_dist(bound,coords,rmin,n=n_ins)
+            trialparticles = _rand_coord_at_dist(bound,np.concatenate(coords),rmin,n=n_ins)
         elif avoid_boundary:
             trialparticles = _rand_coord_in_box(reduced_boundary[i],n=n_ins)
         else:
             trialparticles = _rand_coord_in_box(bound,n=n_ins)
-         
-        #init KDTree for fast pairfinding
+        
         if periodic_boundary:
-            coords = coords - bound[:,0]#shift box to origin
-            tree = cKDTree(coords,boxsize=bound[:,1]-bound[:,0])
+            trialparticles -= bound[:,0]#shift box corner to origin
+        
+            
+        #init KDTree for fast pairfinding for each component separately
+        if periodic_boundary:
+            trees = [cKDTree(coords[j]-bound[:,0],boxsize=bound[:,1]-bound[:,0]) for j in range(nc)]
+            
         else:
-            tree = cKDTree(coords)
+            trees = [cKDTree(coords[j]) for j in range(nc)]
         
         #set default neighbor_upper_bound
-        if type(neighbors_upper_bound)==type(None):
-            k = len(coords)
+        if neighbors_upper_bound is None:
+            ks = [len(coords[j]) for j in range(nc)]
         else:
-            k = min([neighbors_upper_bound,len(coords)])
+            ks = [min([neighbors_upper_bound,len(coords[j])]) for j in range(nc)]
         
-        #find all pairs with one particle from testparticles and one from coordinates
-        distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax,
-                                 workers=workers)
+        #calculate distances from testparticles to each component seperately
+        alldistances,masks = [],[]
+        for j in nc:
+            distances,_ = trees[j].query(trialparticles,k=ks[j],
+                                distance_upper_bound=rmax,workers=workers)
+            alldistances.append(distances)
+            masks.append(np.isfinite(distances) & (distances>0))
         
-        #cKDTree pads rows with np.inf to get correct length, work with masked
-        #arrays to only work on finite values
-        mask = np.isfinite(distances) & (distances>0)
-        
-        #calculate total potential energy of insertion (psi) for each testparticle
-        #(row) by summing each pairwise potential energy u(r)
-        if avoid_boundary:
-            exp_psi = np.empty(n_ins)
-            for j,(row,msk) in enumerate(zip(distances,mask)):
-                exp_psi[j] = np.exp(-np.sum(pot_fun(row[msk])))
-
-        else:
-            if periodic_boundary:
-                #calculate correction factor for each distance bin to account 
-                # for missing information
-                boundarycorr = _sphere_shell_vol_frac_in_cuboid_periodic(
-                    rvals,
-                    min(bound[:,1]-bound[:,0])
-                )[np.newaxis,:]
+        pair_correlations, counters = [],[]
+        for j,(c0,c1) in enumerate(combinations):
                 
+            #init list for total potentials
+            if avoid_boundary:
+                psis = np.zeros(n_ins)
             else:
-                #calculate correction factor for each testparticle for each dist bin
-                # to account for missing information around particles near boundary.
-                #boundary is shifted for coordinate system with origin in particle
-                boundarycorr = _sphere_shell_vol_frac_in_cuboid(
-                    rvals,
-                    bound-trialparticles[:,:,np.newaxis]
-                )
-            #sum pairwise energy per particle per distance bin, then correct
-            # each bin for missing volume, then sum and convert to probability 
-            # e^(-psi)
-            exp_psi = np.empty((n_ins,nr))
-            for j,(row,msk) in enumerate(zip(distances,mask)):
-                dist = row[msk]
-                exp_psi[j] = np.histogram(dist,bins=rvals,weights=pot_fun(dist))[0]
+                psis = np.empty((n_ins,nr))
             
-            #calculate probability of testparticles
-            exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
+            #calculate total potential energy of insertion (psi) for each testparticle
+            #(row) by summing each pairwise potential energy u(r)
+            if avoid_boundary:
+                for k,(row,msk) in enumerate(zip(distances,mask)):
+                    exp_psi[k] = np.sum(pot_fun[j](row[msk]))
         
-        #count how many pairs each particle contributes to each bin
-        if _numba_available:
-            counts = _apply_hist_nb(distances,mask,rvals)
-        else:
-            counts = np.empty((n_ins,nr))
-            for j,(row,msk) in enumerate(zip(distances,mask)):
-                counts[j] = np.histogram(row[msk],bins=rvals)[0]
-        
-        #take average insertion probability of all test-particles
-        prob_tot = np.mean(exp_psi)
-        
-        #boundary correct counts if needed
-        if avoid_boundary:
-            corrcounts = counts.copy()
-        else:
-            corrcounts = counts.copy() / boundarycorr
-        
-        #count up the insertion probabilities counting towards each bin using 
-        #the edge-corrected count number so that all distances have equal 
-        #weight with respect to the averaging in prob_tot
-        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
-        corrcounts = corrcounts.sum(axis=0)
-        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
-        
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
-        counter += counts.sum(axis=0)
+            else:
+                if periodic_boundary:
+                    #calculate correction factor for each distance bin to account 
+                    # for missing information
+                    boundarycorr = _sphere_shell_vol_frac_in_cuboid_periodic(
+                        rvals,
+                        min(bound[:,1]-bound[:,0])
+                    )[np.newaxis,:]
+                    
+                else:
+                    #calculate correction factor for each testparticle for each dist bin
+                    # to account for missing information around particles near boundary.
+                    #boundary is shifted for coordinate system with origin in particle
+                    boundarycorr = _sphere_shell_vol_frac_in_cuboid(
+                        rvals,
+                        bound-trialparticles[:,:,np.newaxis]
+                    )
+                #sum pairwise energy per particle per distance bin, then correct
+                # each bin for missing volume, then sum and convert to probability 
+                # e^(-psi)
+                
+                for k,(row,msk) in enumerate(zip(distances,mask)):
+                    dist = row[msk]
+                    exp_psi[k] = np.histogram(dist,bins=rvals,weights=pot_fun[j](dist))[0]
+                
+                #calculate probability of testparticles
+                exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
+            
+            #count how many pairs each particle contributes to each bin
+            if _numba_available:
+                counts = _apply_hist_nb(distances,mask,rvals)
+            else:
+                counts = np.empty((n_ins,nr))
+                for k,(row,msk) in enumerate(zip(distances,mask)):
+                    counts[k] = np.histogram(row[msk],bins=rvals)[0]
+            
+            #take average insertion probability of all test-particles
+            prob_tot = np.mean(exp_psi)
+            
+            #boundary correct counts if needed
+            if avoid_boundary:
+                corrcounts = counts.copy()
+            else:
+                corrcounts = counts.copy() / boundarycorr
+            
+            #count up the insertion probabilities counting towards each bin using 
+            #the edge-corrected count number so that all distances have equal 
+            #weight with respect to the averaging in prob_tot
+            prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+            corrcounts = corrcounts.sum(axis=0)
+            prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
+            
+            #add to overall lists
+            pair_correlation[j] += prob_r / prob_tot
+            counter[j] += counts.sum(axis=0)
       
     #take unweighted average of all datasets
     pair_correlation /= nf
