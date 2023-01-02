@@ -1959,12 +1959,12 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2166,12 +2166,12 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2382,12 +2382,12 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2687,12 +2687,12 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2823,12 +2823,12 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2972,12 +2972,12 @@ def _rdf_insertion_binned_3d_custom(coordinates,pairpotential,boundary_func,
         corrcounts = corrcounts.sum(axis=0)
         prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #add to overall lists
-        pair_correlation += prob_r / prob_tot
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
         counter += counts.sum(axis=0)
       
-    #take unweighted average of all datasets
-    pair_correlation /= nf
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter

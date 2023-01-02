@@ -141,15 +141,12 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     counters = [c]
     while i < max_iterations:
         
-        #calculate the new pairwise potential, with relaxation
+        #calculate the new pairwise potential, with regularisation
         if regulate:
-            newpotential = np.average(
-                [
+            newpotential = _regulated_updater(
                     np.exp(-pairpotential[-1]),
-                    np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation
-                ],
-                axis=0,
-                weights=[0 if i<4 else 1, 1 if i<4 else 1/min([(i-3)**0.5,20])]
+                    np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation,
+                    i
                 )
         else:
              newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
@@ -715,3 +712,12 @@ def run_iterator_fitfunction3(coordinates,pair_correlation_func,boundary,
         i += 1
     
     return chi_squared,pairpotentials,fitparams,paircorrelations,counters
+
+#%% private helper functions
+def _regulated_updater(old,new,iteration):
+    """returns weighted average of old and new with gradually shifting weight
+    as iteration number increases to get ever more subtle changes"""
+    if iteration<2:
+        return new
+    else:
+        return np.average([old,new],axis=0,weights=[1,1/iteration**0.5])
