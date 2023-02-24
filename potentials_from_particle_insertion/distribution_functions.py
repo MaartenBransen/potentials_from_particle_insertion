@@ -1355,42 +1355,47 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #set default boundary as min and max values in dataset
     if boundary is None:
+        userbound = False
         boundary = np.array([[
                 [coord[:,0].min(),coord[:,0].max()],
                 [coord[:,1].min(),coord[:,1].max()],
                 [coord[:,2].min(),coord[:,2].max()]
             ] for coord in coordinates])
     else:
+        userbound = True
         boundary = np.array(boundary)
         if boundary.ndim == 2:
             boundary = np.broadcast_to(boundary, (nf,3,2))
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
-    if periodic_boundary:
-        for bound in boundary:
-            if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
-                boxlen = bound[0,1]-bound[0,0]
-                if rmax > boxlen*np.sqrt(3)/2:
-                    raise ValueError(
-                        'rmax cannot be more than sqrt(3)/2 times the size of '
-                        'a cubic bounding box when periodic_boundary=True, use'
-                        f' rmax < {(bound[0,1]-bound[0,0])*np.sqrt(3)/2}'
+    if handle_edge:
+        if periodic_boundary:
+            for bound in boundary:
+                if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
+                    boxlen = bound[0,1]-bound[0,0]
+                    if rmax > boxlen*np.sqrt(3)/2:
+                        raise ValueError(
+                            'rmax cannot be more than sqrt(3)/2 times the size'
+                            ' of a cubic bounding box when periodic_boundary='
+                            'True, use rmax < '
+                            f'{(bound[0,1]-bound[0,0])*np.sqrt(3)/2}'
+                        )
+                elif rmax > min(bound[:,1]-bound[:,0]):
+                    raise NotImplementedError(
+                        'rmax larger than half the smallest box dimension when'
+                        ' periodic_boundary=True is only implemented for cubic'
+                        ' boundaries'
                     )
-            elif rmax > min(bound[:,1]-bound[:,0]):
-                raise NotImplementedError(
-                    'rmax larger than half the smallest box dimension when '
-                    'periodic_boundary=True is only implemented for cubic '
-                    'boundaries'
-                )
-    
-    #check rmax and boundary for edge handling without periodic boundaries
-    else:
-        for bound in boundary:
-            if rmax > max(bound[:,1]-bound[:,0])/2:
-                raise ValueError(
-                    'rmax cannot be larger than half the largest dimension in '
-                    f'boundary, use rmax < {max(bound[:,1]-bound[:,0])/2}'
-                )
+        
+        #check rmax and boundary for edge handling without periodic boundaries
+        else:
+            for bound in boundary:
+                if rmax > max(bound[:,1]-bound[:,0])/2:
+                    raise ValueError(
+                        'rmax cannot be larger than half the largest dimension'
+                        ' in boundary, use rmax < '
+                        f'{max(bound[:,1]-bound[:,0])/2}'
+                    )
     
     #set density to mean number density in dataset
     if not density:
@@ -1406,8 +1411,10 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
                   end='')
         
-        #check if coords are within boundary
-        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+        #check if coords are within boundary for user given boundary
+        if userbound and \
+            ((coords<bound[:,0]).any() or (coords>=bound[:,1]).any()):
+            
             print()#newline
             warn('not all coordinates are within boundary in coordinate set '
                  f'{i}, ignoring spurious coords',RuntimeWarning)
