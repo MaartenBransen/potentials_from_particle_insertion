@@ -24,8 +24,8 @@ def save_TPI_results(rmin,rmax,dr,bincentres,dhrdf,rdfs,potentials,counts,
         bin counts for each bin for each iteration
     errors : list of float
         chi squared error for each iteration
-    filename : TYPE, optional
-        DESCRIPTION. The default is 'particle_insertion_result.txt'.
+    filename : str, optional
+        filename to use. The default is 'particle_insertion_result.txt'.
     """
     #open file, overwrite if already exists
     with open(filename,'w+') as file:
