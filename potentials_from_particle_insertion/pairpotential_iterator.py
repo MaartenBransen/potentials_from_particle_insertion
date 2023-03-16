@@ -146,7 +146,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
             newpotential = _regulated_updater(
                     np.exp(-pairpotential[-1]),
                     np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation,
-                    i
+                    i#max(10,i)
                 )
         else:
              newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
