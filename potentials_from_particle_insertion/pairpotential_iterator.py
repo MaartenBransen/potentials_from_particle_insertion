@@ -165,7 +165,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
             **kwargs
         )
         counters.append(c)
-        newpaircorrelation[newpaircorrelation<1e-10] = 1e-10
+        newpaircorrelation[newpaircorrelation<zero_clip] = zero_clip
         #newpaircorrelation[newpaircorrelation>20] = 20
         paircorrelation.append(newpaircorrelation)
         
