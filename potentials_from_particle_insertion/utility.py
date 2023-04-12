@@ -1,3 +1,4 @@
+import numpy as np
 
 def save_TPI_results(rmin,rmax,dr,bincentres,dhrdf,rdfs,potentials,counts,
                      errors,filename='particle_insertion_result.txt'):
@@ -99,6 +100,8 @@ def load_TPI_results(filename):
         r,g = line.split()
         bincentres.append(float(r))
         dhrdf.append(float(g))
+    bincentres = np.array(bincentres)
+    dhrdf = np.array(dhrdf)
     
     
     #init lists
@@ -119,8 +122,8 @@ def load_TPI_results(filename):
             rdf.append(float(g))
             potential.append(float(u))
             count.append(int(c))
-        rdfs.append(rdf)
-        potentials.append(potential)
-        counts.append(count)
+        rdfs.append(np.array(rdf))
+        potentials.append(np.array(potential))
+        counts.append(np.array(count))
         
     return rmin,rmax,dr,bincentres,dhrdf,rdfs,potentials,counts,errors
