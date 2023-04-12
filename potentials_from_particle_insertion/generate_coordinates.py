@@ -61,7 +61,7 @@ def _rand_coord_in_sphere(boundary_pos,boundary_rad,n=1):
 
     Parameters
     ----------
-    boundary_pos : tuple of form (y,x)
+    boundary_pos : tuple of form (z,y,x)
         The position of the centre of the circle in which to generate 
         coordinates
     boundary_rad : float
@@ -83,9 +83,9 @@ def _rand_coord_in_sphere(boundary_pos,boundary_rad,n=1):
     phi = np.arccos(2*np.random.random_sample(n)-1)
     
     coords = np.empty((n,3))
-    coords[:,0] = boundary_pos[0] + r*np.cos(phi)
-    coords[:,1] = boundary_pos[1] + r*np.sin(theta) + r*np.sin(phi)
-    coords[:,1] = boundary_pos[2] + r*np.cos(theta) + r*np.sin(phi)
+    coords[:,0] = boundary_pos[0] + r * np.cos(phi)
+    coords[:,1] = boundary_pos[1] + r * np.sin(phi) * np.sin(theta)
+    coords[:,2] = boundary_pos[2] + r * np.sin(phi) * np.cos(theta)
     
     return coords
 
