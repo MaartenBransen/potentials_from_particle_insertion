@@ -1525,11 +1525,9 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     if any(rmax >= 2*boundary[:,3]):
         raise ValueError('rmax cannot be larger than 2 times the bounding '
                          f'sphere radius, use `rmax<{2*boundary[:,3]}`')
-        
-    #set density to mean number density in dataset
-    if not density:
-        density = np.mean([len(coords)/(4*np.pi*bound[3]**3/3) \
-                           for bound,coords in zip(boundary,coordinates)])
+    
+    #if density is not given, calculate it
+    calc_dens = density is None
     
     #loop over all sets of coordinates
     bincounts = np.zeros(len(rvals)-1)
@@ -1548,6 +1546,9 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                  f'{i}, ignoring spurious coords',RuntimeWarning)
             coords = coords[d<=bound[3]]
             d = d[d<=bound[3]]
+        
+        if calc_dens:
+            density = len(coords) / (4*np.pi*bound[3]**3/3)
         
         #set up KDTree for fast neighbour finding
         tree = cKDTree(coords)
@@ -1583,7 +1584,6 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         counts = np.sum(counts/boundarycorr,axis=0)
 
         #normalize and add to overall list
-        #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         bincounts += counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
                          / (density*len(coords))
 
@@ -2496,12 +2496,11 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     https://doi.org/10.1021/acs.analchem.8b03157
     """
     #create bin edges and bin centres for r
+    coordinates = _check_coordinate_input(coordinates)
     rvals = _get_rvals(rmin, rmax, dr)
     rcent = (rvals[1:]+rvals[:-1])/2
-    nf = len(coordinates)
     nr = len(rcent)
-    
-    coordinates = _check_coordinate_input(coordinates)
+    nf = len(coordinates)
     
     #set default boundary as min and max values in dataset
     if boundary is None:
@@ -2716,8 +2715,8 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
     coordinates = _check_coordinate_input(coordinates)
     rvals = _get_rvals(rmin, rmax, dr)
     rcent = (rvals[1:]+rvals[:-1])/2
-    nf = len(coordinates)
     nr = len(rcent)
+    nf = len(coordinates)
 
     #set default boundary or make sure the length is correct
     if boundary is None:
@@ -2729,7 +2728,7 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
         boundary = np.array(boundary)
     else:
         boundary = np.array(boundary)
-        if boundary.ndim == 2:
+        if boundary.ndim == 1:
             boundary = np.broadcast_to(boundary, (nf,4))
 
     if len(boundary) != nf:
@@ -2761,12 +2760,21 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
+        #check if coords in boundary, if not raise warning and remove
+        d = np.sqrt(np.sum((bound[:3]-coords)**2,axis=1))
+        if any(d>bound[3]):
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[d<=bound[3]]
+            d = d[d<=bound[3]]
+                
         #generate new test-particle coordinates for each set
         if avoid_boundary:
             trialparticles = _rand_coord_in_sphere(bound[:3],bound[3]-rmax,n=n_ins)
         else:
             trialparticles = _rand_coord_in_sphere(bound[:3],bound[3],n=n_ins)
-         
+        
         #init KDTree for fast pairfinding
         tree = cKDTree(coords)
         
@@ -2791,7 +2799,7 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
             # to account for missing information around particles near boundary.
             boundarycorr = _sphere_shell_vol_frac_in_sphere(
                 rvals,
-                np.sqrt(np.sum((trialparticles - np.array(bound[:3]))**2,axis=1)),
+                np.sqrt(np.sum((trialparticles-bound[:3])**2,axis=1)),
                 bound[3]
             )
                 
@@ -2835,7 +2843,7 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
         counter += counts.sum(axis=0)
       
     #take total count weighted average of all datasets
-    pair_correlation /= counter.sum()
+    pair_correlation[counter!=0] /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -3009,12 +3017,12 @@ def _calc_squared_dist(coordinates,trialparticle,rmax):
 def _check_coordinate_input(coordinates):
     """checks type and shape of coordinate arrays"""
     #if already a list, assure all items in it are arrays
-    if type(coordinates)==list:
+    if isinstance(coordinates,list):
         if not all([type(coord)==np.ndarray for coord in coordinates]):
             coordinates = [np.array(coord) for coord in coordinates]
     
     #if array, assure list of array
-    elif type(coordinates)==np.ndarray:
+    elif isinstance(coordinates,np.ndarray):
         if not np.can_cast(coordinates[0].dtype,float):
             raise TypeError(
                 f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "
