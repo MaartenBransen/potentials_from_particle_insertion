@@ -226,7 +226,7 @@ def _circle_ring_area_frac_in_rectangle(r,boundary):
     boundary : numpy.array of shape n*2*2
         list of boundary values shifted with respect to the particle 
         coordinates such that the particles are in the origin, in other words
-        the distances to all 6 boundaries. First dimension contains all 
+        the distances to all 4 boundaries. First dimension contains all 
         particles, second dimension refers to spatial dimension (y,x) and
         third dimension is used to split the boundaries in the negative and 
         positive directions (or min and max of bounding box in each dimension)
