@@ -206,8 +206,6 @@ def _sphere_shell_vol_frac_in_sphere(r,d,boundaryrad):
         array containing the fraction of each spherical shell in r around each 
         particle which lies inside of the boundaries, i.e. V_in/Vtot
     """
-    #https://en.wikipedia.org/wiki/Spherical_cap#Volumes_of_union_and_intersection_of_two_intersecting_spheres
-    
     nrow,ncol = len(d),len(r)
     
     #init list and array for full and partial sphere shells
@@ -357,9 +355,6 @@ def _circle_ring_area_frac_in_circle(r,distances,boundaryrad):
         array containing the fraction of each circle ring in r around each 
         particle which lies inside of the boundaries, i.e. A_in/A_tot
     """
-    #https://diego.assencio.com/?index=8d6ca3d82151bad815f78addf9b5c1c6
-    #note that I have verified it does not matter to switch r1 and r2
-    
     #initialize zeros array with row for each particle and column for each r
     nrow,ncol = len(distances),len(r)
     area = np.zeros((nrow,ncol),dtype=float)
@@ -401,7 +396,6 @@ if _numba_available:
         """numba-compiled subroutine for calculating volume of a sphere octant 
         intersecting with one boundary octant. See _sphere_shell_vol_fraction_nb.
         """
-        
         #sphere surface entirely outside of box, return box oct vol
         if hx**2+hy**2+hz**2 < r**2:
             return hx*hy*hz
