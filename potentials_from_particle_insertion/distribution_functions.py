@@ -466,7 +466,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     #correct for edges in periodic boundary conditions in rectangle/square box
     elif handle_edge == 'periodic rectangle':
         return _rdf_insertion_binned_2d_rectangle(coordinates, pairpotential, 
-            periodic_boundary=False,rmin=rmin,rmax=rmax,dr=dr,
+            periodic_boundary=True,rmin=rmin,rmax=rmax,dr=dr,
             boundary=boundary,pairpotential_binedges=pairpotential_binedges,
             n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers,
@@ -1355,42 +1355,47 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #set default boundary as min and max values in dataset
     if boundary is None:
+        userbound = False
         boundary = np.array([[
                 [coord[:,0].min(),coord[:,0].max()],
                 [coord[:,1].min(),coord[:,1].max()],
                 [coord[:,2].min(),coord[:,2].max()]
             ] for coord in coordinates])
     else:
+        userbound = True
         boundary = np.array(boundary)
         if boundary.ndim == 2:
             boundary = np.broadcast_to(boundary, (nf,3,2))
     
     #check rmax and boundary for edge-handling in periodic boundary conditions
-    if periodic_boundary:
-        for bound in boundary:
-            if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
-                boxlen = bound[0,1]-bound[0,0]
-                if rmax > boxlen*np.sqrt(3)/2:
-                    raise ValueError(
-                        'rmax cannot be more than sqrt(3)/2 times the size of '
-                        'a cubic bounding box when periodic_boundary=True, use'
-                        f' rmax < {(bound[0,1]-bound[0,0])*np.sqrt(3)/2}'
+    if handle_edge:
+        if periodic_boundary:
+            for bound in boundary:
+                if min(bound[:,1]-bound[:,0])==max(bound[:,1]-bound[:,0]):
+                    boxlen = bound[0,1]-bound[0,0]
+                    if rmax > boxlen*np.sqrt(3)/2:
+                        raise ValueError(
+                            'rmax cannot be more than sqrt(3)/2 times the size'
+                            ' of a cubic bounding box when periodic_boundary='
+                            'True, use rmax < '
+                            f'{(bound[0,1]-bound[0,0])*np.sqrt(3)/2}'
+                        )
+                elif rmax > min(bound[:,1]-bound[:,0]):
+                    raise NotImplementedError(
+                        'rmax larger than half the smallest box dimension when'
+                        ' periodic_boundary=True is only implemented for cubic'
+                        ' boundaries'
                     )
-            elif rmax > min(bound[:,1]-bound[:,0]):
-                raise NotImplementedError(
-                    'rmax larger than half the smallest box dimension when '
-                    'periodic_boundary=True is only implemented for cubic '
-                    'boundaries'
-                )
-    
-    #check rmax and boundary for edge handling without periodic boundaries
-    else:
-        for bound in boundary:
-            if rmax > max(bound[:,1]-bound[:,0])/2:
-                raise ValueError(
-                    'rmax cannot be larger than half the largest dimension in '
-                    f'boundary, use rmax < {max(bound[:,1]-bound[:,0])/2}'
-                )
+        
+        #check rmax and boundary for edge handling without periodic boundaries
+        else:
+            for bound in boundary:
+                if rmax > max(bound[:,1]-bound[:,0])/2:
+                    raise ValueError(
+                        'rmax cannot be larger than half the largest dimension'
+                        ' in boundary, use rmax < '
+                        f'{max(bound[:,1]-bound[:,0])/2}'
+                    )
     
     #set density to mean number density in dataset
     if not density:
@@ -1406,8 +1411,10 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             print(f'\rcalculating distance histogram g(r) {i+1} of {nf}',
                   end='')
         
-        #check if coords are within boundary
-        if (coords<bound[:,0]).any() or (coords>=bound[:,1]).any():
+        #check if coords are within boundary for user given boundary
+        if userbound and \
+            ((coords<bound[:,0]).any() or (coords>=bound[:,1]).any()):
+            
             print()#newline
             warn('not all coordinates are within boundary in coordinate set '
                  f'{i}, ignoring spurious coords',RuntimeWarning)
@@ -1518,11 +1525,9 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     if any(rmax >= 2*boundary[:,3]):
         raise ValueError('rmax cannot be larger than 2 times the bounding '
                          f'sphere radius, use `rmax<{2*boundary[:,3]}`')
-        
-    #set density to mean number density in dataset
-    if not density:
-        density = np.mean([len(coords)/(4*np.pi*bound[3]**3/3) \
-                           for bound,coords in zip(boundary,coordinates)])
+    
+    #if density is not given, calculate it
+    calc_dens = density is None
     
     #loop over all sets of coordinates
     bincounts = np.zeros(len(rvals)-1)
@@ -1541,6 +1546,9 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                  f'{i}, ignoring spurious coords',RuntimeWarning)
             coords = coords[d<=bound[3]]
             d = d[d<=bound[3]]
+        
+        if calc_dens:
+            density = len(coords) / (4*np.pi*bound[3]**3/3)
         
         #set up KDTree for fast neighbour finding
         tree = cKDTree(coords)
@@ -1576,7 +1584,6 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         counts = np.sum(counts/boundarycorr,axis=0)
 
         #normalize and add to overall list
-        #counts = tree.count_neighbors(tree,rvals,cumulative=False)[1:]
         bincounts += counts / (4/3*np.pi * (rvals[1:]**3 - rvals[:-1]**3))\
                          / (density*len(coords))
 
@@ -1845,8 +1852,8 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
         reduced_boundary[:,:,1] -= rmax
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
@@ -1932,38 +1939,43 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
+        #calculate average probability of all testparticles in set
+        #prob_tot = np.mean(exp_psi)
         
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        if not avoid_boundary:
-            prob_r = prob_r / boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts if needed
+        if avoid_boundary:
+            corrcounts = counts.copy()
+        else:
+            corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
+
 
 def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
         dr=None,boundary=None,pairpotential_binedges=None,n_ins=1000,
@@ -2086,8 +2098,8 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
                            fill_value='extrapolate')
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
@@ -2137,35 +2149,36 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
-        
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        if not avoid_boundary:
-            prob_r = prob_r / boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts if needed
+        if avoid_boundary:
+            corrcounts = counts.copy()
+        else:
+            corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2302,8 +2315,8 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
                            fill_value='extrapolate')
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,boundfunc,testfunc,coords) in \
@@ -2355,34 +2368,33 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
         #calculate probability of testparticles
         exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
-        
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        prob_r = prob_r / boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts
+        corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2484,12 +2496,11 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     https://doi.org/10.1021/acs.analchem.8b03157
     """
     #create bin edges and bin centres for r
+    coordinates = _check_coordinate_input(coordinates)
     rvals = _get_rvals(rmin, rmax, dr)
     rcent = (rvals[1:]+rvals[:-1])/2
-    nf = len(coordinates)
     nr = len(rcent)
-    
-    coordinates = _check_coordinate_input(coordinates)
+    nf = len(coordinates)
     
     #set default boundary as min and max values in dataset
     if boundary is None:
@@ -2565,8 +2576,8 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
         base_n_ins = n_ins
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
@@ -2657,36 +2668,37 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
             
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
-            
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
         
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        if not avoid_boundary:
-            prob_r = prob_r / boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts if needed
+        if avoid_boundary:
+            corrcounts = counts.copy()
+        else:
+            corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2703,8 +2715,8 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
     coordinates = _check_coordinate_input(coordinates)
     rvals = _get_rvals(rmin, rmax, dr)
     rcent = (rvals[1:]+rvals[:-1])/2
-    nf = len(coordinates)
     nr = len(rcent)
+    nf = len(coordinates)
 
     #set default boundary or make sure the length is correct
     if boundary is None:
@@ -2716,7 +2728,7 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
         boundary = np.array(boundary)
     else:
         boundary = np.array(boundary)
-        if boundary.ndim == 2:
+        if boundary.ndim == 1:
             boundary = np.broadcast_to(boundary, (nf,4))
 
     if len(boundary) != nf:
@@ -2742,18 +2754,27 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
                            fill_value='extrapolate')
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
+        #check if coords in boundary, if not raise warning and remove
+        d = np.sqrt(np.sum((bound[:3]-coords)**2,axis=1))
+        if any(d>bound[3]):
+            print()#newline
+            warn('not all coordinates are within boundary in coordinate set '
+                 f'{i}, ignoring spurious coords',RuntimeWarning)
+            coords = coords[d<=bound[3]]
+            d = d[d<=bound[3]]
+                
         #generate new test-particle coordinates for each set
         if avoid_boundary:
             trialparticles = _rand_coord_in_sphere(bound[:3],bound[3]-rmax,n=n_ins)
         else:
             trialparticles = _rand_coord_in_sphere(bound[:3],bound[3],n=n_ins)
-         
+        
         #init KDTree for fast pairfinding
         tree = cKDTree(coords)
         
@@ -2778,7 +2799,7 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
             # to account for missing information around particles near boundary.
             boundarycorr = _sphere_shell_vol_frac_in_sphere(
                 rvals,
-                np.sqrt(np.sum((trialparticles - np.array(bound[:3]))**2,axis=1)),
+                np.sqrt(np.sum((trialparticles-bound[:3])**2,axis=1)),
                 bound[3]
             )
                 
@@ -2793,35 +2814,36 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
             #calculate probability of testparticles
             exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
-        
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        if not avoid_boundary:
-            prob_r /= boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts if needed
+        if avoid_boundary:
+            corrcounts = counts.copy()
+        else:
+            corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation[counter!=0] /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2891,8 +2913,8 @@ def _rdf_insertion_binned_3d_custom(coordinates,pairpotential,boundary_func,
                            fill_value='extrapolate')
     
     #initialize arrays to store values
-    counter = np.empty((nf,nr))
-    pair_correlation = np.empty((nf,nr))
+    counter = np.zeros(nr)
+    pair_correlation = np.zeros(nr)
     
     #loop over all timesteps / independent sets of coordiates
     for i,(bound,boundfunc,testfunc,coords) in \
@@ -2944,34 +2966,33 @@ def _rdf_insertion_binned_3d_custom(coordinates,pairpotential,boundary_func,
         #calculate probability of testparticles
         exp_psi = np.exp(-np.sum(exp_psi/boundarycorr,axis=1))
             
-        #calculate average probability of all testparticles
-        prob_tot = np.mean(exp_psi)
-        
         #count how many pairs each particle contributes to each bin
         if _numba_available:
-            prob_r = _apply_hist_nb(distances,mask,rvals)
+            counts = _apply_hist_nb(distances,mask,rvals)
         else:
-            prob_r = np.empty((n_ins,nr))
+            counts = np.empty((n_ins,nr))
             for j,(row,msk) in enumerate(zip(distances,mask)):
-                prob_r[j] = np.histogram(row[msk],bins=rvals)[0]
+                counts[j] = np.histogram(row[msk],bins=rvals)[0]
         
-        #boundarycorrect probability counts for correct weighing
-        prob_r /= boundarycorr 
+        #take average insertion probability of all test-particles
+        prob_tot = np.mean(exp_psi)
         
-        counts = prob_r.sum(axis=0)
+        #boundary correct counts
+        corrcounts = counts.copy() / boundarycorr
         
-        #take average of test-particle probabilities in each bin weighted by number
-        # of pair counts
-        prob_r = np.sum(prob_r * exp_psi[:,np.newaxis], axis=0)
-        prob_r[counts!=0] /= counts[counts!=0]
+        #count up the insertion probabilities counting towards each bin using 
+        #the edge-corrected count number so that all distances have equal 
+        #weight with respect to the averaging in prob_tot
+        prob_r = np.sum(corrcounts*exp_psi[:,np.newaxis],axis=0)
+        corrcounts = corrcounts.sum(axis=0)
+        prob_r[corrcounts!=0] /= corrcounts[corrcounts!=0]
         
-        #store to lists
-        counter[i] = counts
-        pair_correlation[i] = prob_r/prob_tot
-    
-    pair_correlation = np.sum(pair_correlation*counter,axis=0)
-    counter = counter.sum(axis=0)
-    pair_correlation[counter!=0] /= counter[counter!=0]
+        #add to overall lists weighted by total count
+        pair_correlation += counts.sum() * prob_r / prob_tot
+        counter += counts.sum(axis=0)
+      
+    #take total count weighted average of all datasets
+    pair_correlation /= counter.sum()
     pair_correlation[counter==0] = 0
     
     return rvals,pair_correlation,counter
@@ -2996,12 +3017,12 @@ def _calc_squared_dist(coordinates,trialparticle,rmax):
 def _check_coordinate_input(coordinates):
     """checks type and shape of coordinate arrays"""
     #if already a list, assure all items in it are arrays
-    if type(coordinates)==list:
+    if isinstance(coordinates,list):
         if not all([type(coord)==np.ndarray for coord in coordinates]):
             coordinates = [np.array(coord) for coord in coordinates]
     
     #if array, assure list of array
-    elif type(coordinates)==np.ndarray:
+    elif isinstance(coordinates,np.ndarray):
         if not np.can_cast(coordinates[0].dtype,float):
             raise TypeError(
                 f"dtype `{coordinates[0].dtype}` of `coordinates` can't be "

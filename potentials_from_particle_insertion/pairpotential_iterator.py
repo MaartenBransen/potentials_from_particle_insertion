@@ -80,6 +80,8 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     paircorrelation : list of list of float
         the values for the pair correlation function from test-particle
         insertion for each iteration
+    counts : list of list of int
+        number of pair counts contributing to each bin in each iteration
     
     References
     ----------
@@ -121,7 +123,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     #set up for 0th iteration seperately
     pairpotential = [initial_guess]
     pair_correlation_func[pair_correlation_func<zero_clip]=zero_clip
-    _,newpaircorrelation,_ = rdf_insertion_binned(
+    _,newpaircorrelation,c = rdf_insertion_binned(
         coordinates,
         initial_guess,
         rmin=rmin,
@@ -136,18 +138,15 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     
     #start the main iterative loop
     i = 1
-    counters = []
+    counters = [c]
     while i < max_iterations:
         
-        #calculate the new pairwise potential, with relaxation
+        #calculate the new pairwise potential, with regularisation
         if regulate:
-            newpotential = np.average(
-                [
+            newpotential = _regulated_updater(
                     np.exp(-pairpotential[-1]),
-                    np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation
-                ],
-                axis=0,
-                weights=[0 if i<2 else 1, 1/min([i,20])]
+                    np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation,
+                    i#max(10,i)
                 )
         else:
              newpotential = np.exp(-pairpotential[-1])*pair_correlation_func/newpaircorrelation   
@@ -166,7 +165,7 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
             **kwargs
         )
         counters.append(c)
-        newpaircorrelation[newpaircorrelation<1e-10] = 1e-10
+        newpaircorrelation[newpaircorrelation<zero_clip] = zero_clip
         #newpaircorrelation[newpaircorrelation>20] = 20
         paircorrelation.append(newpaircorrelation)
         
@@ -713,3 +712,12 @@ def run_iterator_fitfunction3(coordinates,pair_correlation_func,boundary,
         i += 1
     
     return chi_squared,pairpotentials,fitparams,paircorrelations,counters
+
+#%% private helper functions
+def _regulated_updater(old,new,iteration):
+    """returns weighted average of old and new with gradually shifting weight
+    as iteration number increases to get ever more subtle changes"""
+    if iteration<2:
+        return new
+    else:
+        return np.average([old,new],axis=0,weights=[1,1/iteration**0.5])

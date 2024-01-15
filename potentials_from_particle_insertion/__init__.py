@@ -3,7 +3,7 @@ Maarten Bransen, 2020
 m.bransen@uu.nl
 """
 
-__version__ = '0.5.1'
+__version__ = '0.6.0'
 
 from .pairpotential_iterator import (
     run_iteration,
@@ -20,6 +20,12 @@ from .distribution_functions import (
     rdf_insertion_exact_3d,
 )
 
+from .utility import (
+    save_TPI_results,
+    load_TPI_results,
+)
+
+
 #define all for doing `from .. import *`
 __all__ = [
     'run_iteration',
@@ -31,6 +37,8 @@ __all__ = [
     'rdf_insertion_binned_2d',
     'rdf_insertion_binned_3d',
     'rdf_insertion_exact_3d',
+    'save_TPI_results',
+    'load_TPI_results',
 ]
 
 #add submodules to pdoc ignore list for generated documentation
@@ -38,5 +46,6 @@ __pdoc__ = {
     'pairpotential_iterator' : False,
     'distribution_functions' : False,
     'geometry' : False,
-    'generate_coordinates' : False
+    'generate_coordinates' : False,
+    'utility' : False
 }
