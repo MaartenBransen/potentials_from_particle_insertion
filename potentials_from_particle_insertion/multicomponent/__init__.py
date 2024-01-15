@@ -125,7 +125,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         number density of particles in the box for each of the components to 
         use for normalizing the g(r) values. The default is the average density
         based on `coordinates` and `boundary`.
-    components : list of tuple of int
+    combinations : list of tuple of int
         list of different combinations of the two components to calculate the 
         g(r) for, where the first element is the integer index of the component
         to use for the central reference particles and the second is the index
@@ -951,7 +951,6 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
         number density of particles in the box for each of the components to 
         use for normalizing the g(r) values. The default is the average density
         based on `coordinates` and `boundary`.
-    components : list of tuple of int
     combinations : list of tuple of int
         list of different combinations of the two components to calculate the 
         g(r) for, where the first element is the integer index of the component
@@ -1198,7 +1197,7 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         number density of particles in the box for each of the components to 
         use for normalizing the g(r) values. The default is the average density
         based on `coordinates` and `boundary`.
-    components : list of tuple of int
+    combinations : list of tuple of int
         list of different combinations of the two components to calculate the 
         g(r) for, where the first element is the integer index of the component
         to use for the central reference particles and the second is the index
