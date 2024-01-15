@@ -1047,16 +1047,18 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
                 ]
     
     #set density to mean number density in dataset
-    if not density:
+    if density is None:
         vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
-        density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
+        density = [
+            np.mean([len(coords[c])/v for v,coords in zip(vol,coordinates)]) \
+                for c in range(nc)]
     
     #create all combinations of components if not given
     if combinations is None:
-        combinations = [(c0,c1) for c0 in range(nc) for c1 in range(nc)]
+        combinations = _get_combinations(nc)
     
     #loop over all sets of coordinates
-    bincounts = np.zeros((nc**2,len(rvals)-1))
+    bincounts = np.zeros((len(combinations),len(rvals)-1))
     for i,(bound,coords) in enumerate(zip(boundary,coordinates)):
         
         #print progress
@@ -1130,7 +1132,7 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
     
                     boundarycorr=_circle_ring_area_frac_in_rectangle(
                         rvals,
-                        bound-coords[:,:,np.newaxis]
+                        bound-coords[c0][:,:,np.newaxis]
                     )
                     counts = np.sum(counts/boundarycorr,axis=0)
             
@@ -1151,7 +1153,7 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
     #average all datasets
     bincounts = [b/nf for b in bincounts]
     
-    return rvals,tuple(bincounts)
+    return rvals,tuple(bincounts),tuple(combinations)
 
 
 def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
