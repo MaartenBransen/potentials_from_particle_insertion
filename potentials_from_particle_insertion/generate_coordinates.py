@@ -164,7 +164,7 @@ def _rand_coord_at_dist(boundary,coordinates,rmin,n=1,timeout=100):
             return coord[~rejects]
         
         #replace rejected values
-        coord[rejects] = np.random.random_sample((rejects.sum(),3)) \
+        coord[rejects] = np.random.random_sample((rejects.sum(),len(boundary))) \
             *(boundary[:,1]-boundary[:,0])[np.newaxis,:]+boundary[np.newaxis,:,0]
         
         #check replaced values, and update list of rejects
