@@ -65,8 +65,8 @@ bincent = (binedges[1:]+binedges[:-1])/2
 #plot rdf
 plt.figure('distance histogram g(r)')
 plt.plot(bincent,binvals,'-r',label='dist hist')
-plt.xlabel('r ($\mathrm{\mu m}$)')
-plt.ylabel('g(r)')
+plt.xlabel('$r$')
+plt.ylabel('$g(r)$')
 plt.xlim(rmin,rmax)
 plt.ylim(0,1.1)
 plt.show()
@@ -99,8 +99,8 @@ plt.plot(bincent,binvals,label='distance histogram',color='k')
 [plt.plot(bincent,rdf[i],label='particle insertion {:}'.format(i),color=colors[i]) for i in range(len(error))]
 plt.xlim(rmin,rmax)
 plt.ylim([0,1.1])
-plt.xlabel('r ($\mathrm{\mu m}$)')
-plt.ylabel('g(r)')
+plt.xlabel('$r$')
+plt.ylabel('$g(r)$')
 plt.tight_layout()
 plt.show()
 
@@ -108,8 +108,8 @@ plt.show()
 fig = plt.figure('u(r) evolution')
 [plt.plot(bincent,potential[i],label='particle insertion {:}'.format(i),color=colors[i]) for i in range(len(error))]
 plt.xlim(rmin,rmax)
-plt.xlabel('r ($\mathrm{\mu m}$)')
-plt.ylabel('u(r) $(k_B T)$')
+plt.xlabel('$r$')
+plt.ylabel('$u(r)$ $(k_B T)$')
 plt.tight_layout()
 plt.show()
 
