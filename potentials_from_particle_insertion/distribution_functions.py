@@ -1922,7 +1922,6 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
         #cKDTree pads rows with np.inf to get correct length, work with masked
         #arrays to only work on finite values
         mask = np.isfinite(distances) & (distances>0)
-        distances = np.ma.masked_array(distances,mask)
         
         #calculate total potential energy of insertion (psi) for each testparticle
         #(row) by summing each pairwise potential energy u(r)
@@ -2651,8 +2650,8 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
         distances,_ = tree.query(trialparticles,k=k,distance_upper_bound=rmax,
                                  workers=workers)
         
-        #cKDTree pads rows with np.inf to get correct length, work with masked
-        #arrays to only work on finite values
+        #cKDTree pads rows with np.inf to get correct length, work with mask
+        #to only work on finite values
         mask = np.isfinite(distances) & (distances>0)
         
         #calculate total potential energy of insertion (psi) for each testparticle
