@@ -50,7 +50,7 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 """
 
-__version__ = '0.6.0'
+__version__ = '1.0.0'
 
 from .pairpotential_iterator import (
     run_iteration,

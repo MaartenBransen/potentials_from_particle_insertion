@@ -1,11 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="scm_electron_microscopes",
-    version="0.6.0",
+    name="potentials_from_particle_insertion",
+    version="1.0.0",
     author="Maarten Bransen",
-    author_email="m.bransen@uu.nl",
-    license='GNU General Public License v3.0',
+    license='MIT License',
     long_description=open('README.md').read(),
     packages=find_packages(include=["potentials_from_particle_insertion", "potentials_from_particle_insertion.*"]),
     install_requires=[
