@@ -9,7 +9,7 @@ The codes for this package were developed as part of the work in reference [1], 
 
 [2] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). [Model-Free Measurement of the Pair Potential in Colloidal Fluids Using Optical Microscopy](https://doi.org/10.1103/PhysRevLett.123.098002). Physical Review Letters, 123(9), 098002. 
 
-[3] Markus Seserno (2014). [How to calculate a three-dimensional g(r) under periodic boundary conditions](https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf).
+[3] Seserno, M. (2014). [How to calculate a three-dimensional g(r) under periodic boundary conditions](https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf).
 
 [4] Kopera, B. A. F., & Retsch, M. (2018). [Computing the 3D Radial Distribution Function from Particle Positions: An Advanced Analytic Approach](https://doi.org/10.1021/acs.analchem.8b03157). Analytical Chemistry, 90(23), 13909–13914.
 
