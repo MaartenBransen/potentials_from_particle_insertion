@@ -1,4 +1,7 @@
-"""Python package with a set of functions for calculating the g(r) using the 
+"""
+Description
+-----------
+Python package with a set of functions for calculating the g(r) using the 
 Widom test-particle insertion method, and/or for fitting the g(r) to solve for
 the pair-potential using particle coordinates from e.g. confocal microscopy or 
 cryo-TEM.
@@ -27,7 +30,10 @@ Function from Particle Positions: An Advanced Analytic Approach. Analytical
 Chemistry, 90(23), 13909–13914.
 https://doi.org/10.1021/acs.analchem.8b03157
 
--------------------------------------------------------------------------------
+License
+-------
+MIT license
+
 Copyright (c) 2024 Maarten Bransen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -47,8 +53,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
--------------------------------------------------------------------------------
-"""
 
 __version__ = '1.0.0'
 
