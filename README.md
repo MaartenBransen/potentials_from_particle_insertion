@@ -1,4 +1,5 @@
 # potentials_from_particle_insertion
+[![DOI](https://zenodo.org/badge/276691171.svg)](https://zenodo.org/doi/10.5281/zenodo.10519368)
 ## Overview
 Python package with a set of functions for calculating the g(r) using the Widom test-particle insertion method, and/or for fitting the g(r) to solve for the pair-potential using particle coordinates from e.g. confocal microscopy or cryo-TEM.
 
