@@ -63,9 +63,9 @@ from .geometry import (
 
 #%% public definitions
 
-def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
-        density=None,periodic_boundary=False,handle_edge='rectangle',
-        quiet=False,neighbors_upper_bound=None,workers=1):
+def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,
+    handle_edge='rectangle',boundary=None,density=None,quiet=False,
+    neighbors_upper_bound=None,workers=1):
     """calculates g(r) via a 'conventional' distance histogram method for a 
     set of 2D coordinate sets. Provided for convenience.
 
@@ -111,7 +111,7 @@ def rdf_dist_hist_2d(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
             N×2 numpy array of coordinates and a boundary as specified in 
             `boundary`, and return an N × `len(bin edges)-1` numpy array with 
             a value between 0 and 1 specifying the fraction of the volume of 
-            each spherical shell that is within the boundary.
+            each circular shell that is within the boundary.
         
         The default is 'rectangle'.
     
@@ -351,10 +351,6 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
-    
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas for periodic and nonperiodic 
-    boundary conditions.
 
     Parameters
     ----------
@@ -388,7 +384,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             rectangular boundary.
         *   `'periodic' rectangle'`: like `'rectangle'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other), 
-            based on ref [2].
+            based on ref [1].
         *   `'circle'`: correct for missing volume in a spherical boundary.
         *   a custom callable function (or list thereof) can be given to 
             correct for arbitrary and/or mixed boundary conditions. This 
@@ -465,12 +461,7 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     
     References
     ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
-    [2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
     periodic boundary conditions.
     https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
     """
@@ -506,9 +497,9 @@ def rdf_insertion_binned_2d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     elif callable(handle_edge) or \
         (type(handle_edge)==list and callable(handle_edge[0])):
         return _rdf_insertion_binned_2d_custom(coordinates, pairpotential, 
-            handle_edge,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
-            boundary=boundary,pairpotential_binedges=pairpotential_binedges,
-            n_ins=n_ins,interpolate=interpolate,
+            handle_edge,boundary,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
+            pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
+            interpolate=interpolate,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers,
             **kwargs)
     
@@ -524,10 +515,6 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     """Calculate g(r) from insertion of test-particles into sets of existing
     2D coordinates, averaged over bins of width dr, and based on the pairwise 
     interaction potential u(r) (in units of kT).
-    
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas for periodic and nonperiodic 
-    boundary conditions.
 
     Parameters
     ----------
@@ -564,10 +551,10 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
             giving the particle density using `density`.
         *   `'cuboid'`: correct for the missing volume in cuboidal boundary
             conditions, e.g. a 3D rectangular box with right angles. Based on
-            ref. [2]
+            ref. [1]
         *   `'periodic' cuboid'`: like `'cuboid'`, except in periodic 
             boundary conditions (i.e. one side wraps around to the other). 
-            Based on ref. [3].
+            Based on ref. [2].
         *   `'sphere'`: correct for missing volume in spherical boundary
             conditions
         *   a custom callable function (or list thereof) can be given to 
@@ -644,17 +631,12 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     
     References
     ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
-    [2] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
+    [1] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
     Distribution Function from Particle Positions: An Advanced Analytic 
     Approach. Analytical Chemistry, 90(23), 13909–13914. 
     https://doi.org/10.1021/acs.analchem.8b03157
     
-    [3] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    [2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
     periodic boundary conditions.
     https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
     """
@@ -702,9 +684,9 @@ def rdf_insertion_binned_3d(coordinates,pairpotential,rmin=0,rmax=10,dr=None,
     elif callable(handle_edge) or \
         (type(handle_edge)==list and callable(handle_edge[0])):
         return _rdf_insertion_binned_3d_custom(coordinates, pairpotential, 
-            handle_edge,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
-            boundary=boundary,pairpotential_binedges=pairpotential_binedges,
-            n_ins=n_ins,interpolate=interpolate,avoid_boundary=avoid_boundary,
+            handle_edge,boundary,testparticle_func,rmin=rmin,rmax=rmax,dr=dr,
+            pairpotential_binedges=pairpotential_binedges,n_ins=n_ins,
+            interpolate=interpolate,avoid_boundary=avoid_boundary,
             neighbors_upper_bound=neighbors_upper_bound,workers=workers,
             **kwargs)
     
@@ -723,7 +705,8 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
     
     calculate g(r) from particle insertion method using particle coordinates
     and pairwise interaction potential u(r) (in units of kT). Inserts test-
-    particles at a specific r for every real particle
+    particles at a specific r for every real particle. Implementation based on
+    ref [1]
 
     Parameters
     ----------
@@ -762,6 +745,13 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
         bins whose edges are defined by numpy.arange(0,rmax+dr,dr)
     counters : list of int
         The number of trialparticles evaluated for each distance bin
+
+    References
+    ----------
+    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2018). Contact 
+    values of pair distribution functions in colloidal hard disks by 
+    test-particle insertion. The Journal of Chemical Physics, 148(24), 241102. 
+    https://doi.org/10.1063/1.5038668
 
     """
     coordinates = _check_coordinate_input(coordinates)
@@ -854,9 +844,10 @@ def rdf_insertion_exact_3d(coordinates,pairpotential,rmax,dr,boundary,
 def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
         boundary=None,density=None,periodic_boundary=False,handle_edge=True,
         quiet=False,neighbors_upper_bound=None,workers=1):
-    """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 2D coordinate sets. Provided for convenience. Edge correction is 
-    fully analytical for both periodic and nonperiodic boundary conditions.
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf in rectangular boundaries with
+    or without correction for finite size effects, or while accounting for 
+    periodic boundary conditions as used in simulations.
 
     Parameters
     ----------
@@ -1061,9 +1052,9 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
 
 def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         density=None,quiet=False,neighbors_upper_bound=None,workers=1):
-    """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 2D coordinate sets. Provided for convenience. Edge correction is 
-    fully analytical for both periodic and nonperiodic boundary conditions.
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf in circular boundary conditions
+    while correcting for edge effects.
 
     Parameters
     ----------
@@ -1086,7 +1077,8 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     boundary : tuple of floats
         coordinates of the origin and radius defining the bounding circle as
         `(y,x,r)` tuple or array-like, or a list thereof matching the length
-        of  `coordinates`.
+        of  `coordinates` to specify different boundaries for each coordinate
+        set.
     density : float, optional
         number density of particles in the box to use for normalizing the 
         values. The default is the average density based on `coordinates` and
@@ -1110,7 +1102,6 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         bin-edges of the radial distribution function.
     bincounts : numpy.array
         values for the bins of the radial distribution function
-        
     """
     #create bins, check coordinates
     rvals = np.arange(rmin,rmax+dr,dr)
@@ -1206,6 +1197,62 @@ def _rdf_dist_hist_2d_circle(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
 def _rdf_dist_hist_2d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
         rmax=10,dr=None,quiet=False,neighbors_upper_bound=None,workers=1):
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf using boundaries and corrections
+    supplied via arguments so that custom boundary geometries can be corrected
+    for, as well as for a list of datasets with different boundary coditions
+    between them.
+    
+    Parameters
+    ----------
+    coordinates : numpy.array or list-like of numpy.array of floats
+        list of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[y,x]`.  Each 
+        set of coordinates is not required to have the same number of particles
+        and is assumed to share the same boundaries when no boundaries or only
+        a single set of boundaries are given.
+    boundaryfunc : callable or list thereof
+        function to correct for finite boundary conditions. Must take three 
+        arguments: a numpy array of bin edges, an N×2 numpy array of 
+        coordinates and a boundary as specified in `boundary`, and return an 
+        N × `len(bin edges)-1` numpy array with a value between 0 and 1 
+        specifying the fraction of the area of each circular ring which is 
+        within the boundary. See e.g. `_circle_ring_area_frac_in_rectangle`.
+    boundary : tuple or list of tuple
+        boundary specification as required for boundaryfunc.
+    density : float
+        average number density of particles in the box to use for normalizing 
+        the values of the radial distribution function.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. The default 
+        is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : numpy.array
+        values for the bins of the radial distribution function
+    """
     
     #create bins
     rvals = _get_rvals(rmin, rmax, dr)
@@ -1300,9 +1347,10 @@ def _rdf_dist_hist_2d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
 def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
         density=None,periodic_boundary=False,handle_edge=True,quiet=False,
         neighbors_upper_bound=None,workers=1):
-    """calculates g(r) via a 'conventional' distance histogram method for a 
-    set of 3D coordinate sets. Provided for convenience. Edge correction based
-    on refs [1] and [2].
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf in cuboidal (3D 'rectangular')
+    boundaries with or without correction for finite size effects, or while 
+    accounting for periodic boundary conditions as used in simulations.
 
     Parameters
     ----------
@@ -1520,6 +1568,59 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
                      density=None,quiet=False,neighbors_upper_bound=None,
                      workers=1):
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf in spherical boundary conditions
+    while correcting for edge effects.
+    
+    Parameters
+    ----------
+    coordinates : numpy.array or list-like of numpy.array
+        list of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        and is assumed to share the same boundaries when no boundaries or only
+        a single set of boundaries are given.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    boundary : tuple or list thereof, optional
+        origin and radius of the sphere defining the bounding box of the 
+        coordinates given as `(z,y,x,radius)` if all coordinate sets share the 
+        same boundary, or a list of such tuples of the same length as 
+        `coordinates` for specifying boundaries of each set in  `coordinates` 
+        separately. The default is the minimum radius sphere centered around
+        the mean positions of the particles.
+    density : float, optional
+        number density of particles in the box to use for normalizing the 
+        values. The default is the average density based on `coordinates` and
+        `boundary`.
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : numpy.array
+        values for the bins of the radial distribution function
+    """
     #create bins
     rvals = _get_rvals(rmin, rmax, dr)
     
@@ -1619,12 +1720,63 @@ def _rdf_dist_hist_3d_sphere(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
 
 def _rdf_dist_hist_3d_custom(coordinates,boundaryfunc,boundary,density,rmin=0,
     rmax=10,dr=None,quiet=False,neighbors_upper_bound=None,workers=1):
-    """
-    calculates a distance histogram g(r) with arbitrary boundary conditions
-    
-    for docs see top level `rdf_dist_hist_3D` function
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf using boundaries and corrections
+    supplied via arguments so that custom boundary geometries can be corrected
+    for, as well as for a list of datasets with different boundary coditions
+    between them.
 
+    Parameters
+    ----------
+    coordinates : numpy.array or list-like of numpy.array
+        list of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        and is assumed to share the same boundaries when no boundaries or only
+        a single set of boundaries are given.
+    boundaryfunc : callable or list thereof
+        function to correct for finite boundary conditions. Must take three 
+        arguments: a numpy array of bin edges, an N×2 numpy array of 
+        coordinates and a boundary as specified in `boundary`, and return an 
+        N × `len(bin edges)-1` numpy array with a value between 0 and 1 
+        specifying the fraction of the area of each circular ring which is 
+        within the boundary. See e.g. `_sphere_shell_vol_frac_in_cuboid`.
+    boundary : tuple or list of tuple
+        boundary specification as required for boundaryfunc.
+    density : float
+        average number density of particles in the box to use for normalizing 
+        the values of the radial distribution function.
+    rmin : float, optional
+        lower bound for the pairwise distance, left edge of 0th bin. The 
+        default is 0.
+    rmax : float, optional
+        upper bound for the pairwise distance, right edge of last bin. The 
+        default is 10.
+    dr : float, optional
+        bin width for the pairwise distance bins. The default is (rmax-rmin)/20
+    quiet : bool, optional
+        if True, no output is printed to the terminal by this function call. 
+        The default is False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    bincounts : numpy.array
+        values for the bins of the radial distribution function
     """
+
     #create bins
     rvals = _get_rvals(rmin, rmax, dr)
     coordinates = _check_coordinate_input(coordinates)
@@ -1718,13 +1870,11 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
     rmax=10,dr=None,boundary=None,pairpotential_binedges=None,n_ins=1000,
     interpolate=True,periodic_boundary=False,avoid_boundary=False,
     avoid_coordinates=False,neighbors_upper_bound=None,workers=1):
-    """Calculate g(r) from insertion of test-particles into sets of existing
-    2D coordinates, averaged over bins of width dr, and based on the pairwise 
-    interaction potential u(r) (in units of kT).
-    
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas for periodic and nonperiodic 
-    boundary conditions.
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf from insertion of test-particles
+    into sets of existing 2D coordinates in rectangular boundaries, averaged 
+    over bins of width dr, and based on the pairwise interaction potential u(r)
+    (in units of kT).
 
     Parameters
     ----------
@@ -1739,6 +1889,8 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
     pairpotential : iterable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
     rmax : float
         cut-off radius for the pairwise distance (right edge of last bin).
     dr : float
@@ -1758,8 +1910,6 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
         whether to use linear interpolation for calculating the interaction of 
         two particles using the values in `pairpotential`. The default is True.
         If False, the nearest bin value is used.
-    rmin : float, optional
-        lower cut-off for the pairwise distance. The default is 0.
     periodic_boundary : bool, optional
         whether periodic boundary conditions are used. The default is False.
     avoid_boundary : bool, optional
@@ -1784,18 +1934,12 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
 
     Returns
     -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
     pair_correlation : numpy.array
         values for the rdf / pair correlation function in each bin
     counter : numpy.array
         number of pair counts that contributed to the (mean) values in each bin
-    
-    References
-    ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
     """
     #create bin edges and bin centres for r
     rvals = _get_rvals(rmin, rmax, dr)
@@ -1851,20 +1995,32 @@ def _rdf_insertion_binned_2d_rectangle(coordinates,pairpotential,rmin=0,
                     'boundary, use rmax<{max(bound[:,1]-bound[:,0])/2}'
                 )
     
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if pairpotential_binedges is None:
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        #convert bool values of interpolate to nearest (no interpolation) and linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
@@ -2001,12 +2157,11 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
         dr=None,boundary=None,pairpotential_binedges=None,n_ins=1000,
         interpolate=True,avoid_boundary=False,neighbors_upper_bound=None,
         workers=1):
-    """Calculate g(r) from insertion of test-particles into sets of existing
-    2D coordinates, averaged over bins of width dr, and based on the pairwise 
-    interaction potential u(r) (in units of kT).
-    
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas for circle-circle overlap.
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf from insertion of test-particles
+    into sets of existing 2D coordinates in circular boundaries, averaged over 
+    bins of width dr, and based on the pairwise interaction potential u(r) (in 
+    units of kT).
 
     Parameters
     ----------
@@ -2021,6 +2176,8 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
     pairpotential : iterable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
     rmax : float
         cut-off radius for the pairwise distance (right edge of last bin).
     dr : float
@@ -2040,8 +2197,6 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
         whether to use linear interpolation for calculating the interaction of 
         two particles using the values in `pairpotential`. The default is True.
         If False, the nearest bin value is used.
-    rmin : float, optional
-        lower cut-off for the pairwise distance. The default is 0.
     periodic_boundary : bool, optional
         whether periodic boundary conditions are used. The default is False.
     avoid_boundary : bool, optional
@@ -2062,18 +2217,12 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
 
     Returns
     -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
     pair_correlation : numpy.array
         values for the rdf / pair correlation function in each bin
     counter : numpy.array
         number of pair counts that contributed to the (mean) values in each bin
-    
-    References
-    ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
     """
     #create bin edges and bin centres for r
     coordinates = _check_coordinate_input(coordinates)
@@ -2102,20 +2251,33 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
         raise ValueError('rmax cannot be larger than 2 times the bounding '
                          f'circle radius, use `rmax<{2*boundary[:,2]}`')
 
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if pairpotential_binedges is None:
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = \
+            (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        #convert bool values of interpolate to nearest or linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #initialize arrays to store values
     counter = np.zeros(nr)
@@ -2204,17 +2366,16 @@ def _rdf_insertion_binned_2d_circle(coordinates,pairpotential,rmin=0,rmax=20,
     return rvals,pair_correlation,counter
 
 def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
-    testparticle_func,rmin=0,rmax=10,dr=None,boundary=None,
+    boundary,testparticle_func,rmin=0,rmax=10,dr=None,
     pairpotential_binedges=None,n_ins=1000,interpolate=True,
     avoid_coordinates=False,neighbors_upper_bound=None,workers=1):
-    """Calculate g(r) from insertion of test-particles into sets of existing
-    2D coordinates, averaged over bins of width dr, and based on the pairwise 
-    interaction potential u(r) (in units of kT).
+    """not intended to be called directly, see top-level `rdf_dist_hist_2d`
+    function. This function calculates the rdf from insertion of test-particles
+    using boundaries and corrections supplied via arguments so that custom 
+    boundary geometries can be corrected for, as well as for a list of datasets
+    with different boundary coditions between them, averaged over bins of width
+    dr, and based on the pairwise interaction potential u(r) (in units of kT).
     
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas for periodic and nonperiodic 
-    boundary conditions.
-
     Parameters
     ----------
     coordinates : list-like of numpy.array
@@ -2228,6 +2389,23 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
     pairpotential : iterable
         list of values for the pairwise interaction potential. Must have length
         of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    boundaryfunc : callable or list thereof
+        function to correct for finite boundary conditions. Must take three 
+        arguments: a numpy array of bin edges, an N×2 numpy array of 
+        coordinates and a boundary as specified in `boundary`, and return an 
+        N × `len(bin edges)-1` numpy array with a value between 0 and 1 
+        specifying the fraction of the area of each circular ring which is 
+        within the boundary. See e.g. `_circle_ring_area_frac_in_rectangle`.
+    boundary : tuple or list thereof
+        boundary specification as required for boundaryfunc.
+    testparticle_func : callable or list thereof
+        function that randomly generates testparticles within the boundary. 
+        Must take 2 arguments, resp. the boundary and n_ins, or 4 argumants, 
+        resp. the boundaries, coordinates, minimum distance and n_ins when
+        `avoid_coordinates=True`. See e.g. `_rand_coord_in_box` or 
+        `_rand_coord_at_dist`.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
     rmax : float
         cut-off radius for the pairwise distance (right edge of last bin).
     dr : float
@@ -2247,8 +2425,6 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
         whether to use linear interpolation for calculating the interaction of 
         two particles using the values in `pairpotential`. The default is True.
         If False, the nearest bin value is used.
-    rmin : float, optional
-        lower cut-off for the pairwise distance. The default is 0.
     avoid_coordinates : bool, optional
         whether to insert test-particles at least `rmin` away from the center 
         of any of the 'real' coordinates in `coordinates`. The default is 
@@ -2265,6 +2441,8 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
 
     Returns
     -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
     pair_correlation : numpy.array
         values for the rdf / pair correlation function in each bin
     counter : numpy.array
@@ -2319,20 +2497,33 @@ def _rdf_insertion_binned_2d_custom(coordinates,pairpotential,boundary_func,
         raise ValueError('lengths of `testparticle_func` and `coordinates` '
                          'must match')
     
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if pairpotential_binedges is None:
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = \
+            (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        #convert bool values of interpolate to nearest or linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #initialize arrays to store values
     counter = np.zeros(nr)
@@ -2424,13 +2615,11 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     interpolate=True,periodic_boundary=False,ins_coords=None,insert_grid=False,
     avoid_boundary=False,avoid_coordinates=False,neighbors_upper_bound=None,
     workers=1):
-    """Calculate g(r) from insertion of test-particles into sets of existing
-    3D coordinates, averaged over bins of width dr, and based on the pairwise 
-    interaction potential u(r) (in units of kT).
-    
-    Implementation partly based on ref. [1] but with novel corrections for 
-    edge effects based on analytical formulas from refs. [2] and [3] for 
-    periodic and nonperiodic boundary conditions respectively.
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf from insertion of test-particles
+    into sets of existing 3D coordinates in cuboidal boundaries, averaged over 
+    bins of width dr, and based on the pairwise interaction potential u(r) (in 
+    units of kT).
 
     Parameters
     ----------
@@ -2447,6 +2636,8 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
         of `len(pairpotential_binedges)-1` and be in units of thermal energy 
         kT. Alternatively, any callable (function) which takes only a numpy 
         array of pairwise distances and returns the pairpotential can be given.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
     rmax : float
         cut-off radius for the pairwise distance (right edge of last bin).
     dr : float
@@ -2468,10 +2659,12 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
         two particles using the values in `pairpotential`. The default is True.
         If False, the nearest bin value is used. This parameter is ignored if 
         pairpotential is a callable (function).
-    rmin : float, optional
-        lower cut-off for the pairwise distance. The default is 0.
     periodic_boundary : bool, optional
         whether periodic boundary conditions are used. The default is False.
+    insert_grid : bool, optional
+        Wheter to insert the coordinates on an evenly spaced regular grid. The 
+        default is False which inserts on uniformly distributed pseudorandom
+        coordinates.
     avoid_boundary : bool, optional
         if True, all test-particles are inserted at least `rmax` away from any 
         of the surfaces defined in `boundary` to avoid effects of the finite
@@ -2494,6 +2687,8 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
 
     Returns
     -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
     pair_correlation : numpy.array
         values for the rdf / pair correlation function in each bin
     counter : numpy.array
@@ -2501,16 +2696,11 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     
     References
     ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
-    [2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+    [1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
     periodic boundary conditions.
     https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf
     
-    [3] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
+    [2] Kopera, B. A. F., & Retsch, M. (2018). Computing the 3D Radial 
     Distribution Function from Particle Positions: An Advanced Analytic 
     Approach. Analytical Chemistry, 90(23), 13909–13914. 
     https://doi.org/10.1021/acs.analchem.8b03157
@@ -2574,17 +2764,26 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
     #otherwise use nearest or linearly interpolate
     else:
         #bin edges and centres for pairpotential
-        if type(pairpotential_binedges) == type(None):
+        if pairpotential_binedges is None:
             pairpotential_binedges = rvals
-        pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        pairpotential_bincenter = \
+            (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
         
-        if interpolate:#linearly interpolate pair potential between points
-            pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,pairpotential)
-        else:#get pair potential from nearest bin (round r to bincenter)
-            from scipy.interpolate import interp1d    
-            pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                               kind='nearest',bounds_error=False,
-                               fill_value='extrapolate')
+        #convert bool values of interpolate to nearest or linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #define a reduced area for test-particles away from all boundaries
     if avoid_boundary:
@@ -2725,11 +2924,77 @@ def _rdf_insertion_binned_3d_cuboid(coordinates,pairpotential,rmin=0,rmax=10,
 
 def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
     dr=None,boundary=None,pairpotential_binedges=None,n_ins=1000,
-    interpolate=True,periodic_boundary=False,ins_coords=None,insert_grid=False,
-    avoid_boundary=False,avoid_coordinates=False,neighbors_upper_bound=None,
-    workers=1):
-    """
-    to be written, note that this is identical to the 2D version
+    interpolate=True,avoid_boundary=False,neighbors_upper_bound=None,workers=1):
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf from insertion of test-particles
+    into sets of existing 3D coordinates in spherical boundaries, averaged over 
+    bins of width dr, and based on the pairwise interaction potential u(r) (in 
+    units of kT).
+
+    Parameters
+    ----------
+    coordinates : list-like of numpy.array
+        List of sets of coordinates, where each item along the 0th dimension is
+        a n*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        but all coordinates must be within the bounding box(es) given in 
+        `boundary`.
+    pairpotential : iterable or callable
+        list of values for the pairwise interaction potential. Must have length
+        of `len(pairpotential_binedges)-1` and be in units of thermal energy 
+        kT. Alternatively, any callable (function) which takes only a numpy 
+        array of pairwise distances and returns the pairpotential can be given.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
+    rmax : float
+        cut-off radius for the pairwise distance (right edge of last bin).
+    dr : float
+        bin width of the pairwise distance bins.
+    boundary : tuple or list thereof, optional
+        origin and radius of the sphere defining the bounding box of the 
+        coordinates given as `(z,y,x,radius)` if all coordinate sets share the 
+        same boundary, or a list of such tuples of the same length as 
+        `coordinates` for specifying boundaries of each set in  `coordinates` 
+        separately. The default is the minimum radius sphere centered around
+        the mean positions of the particles.
+    pairpotential_binedges : iterable, optional
+        bin edges corresponding to the values in `pairpotential. The default 
+        is None, which uses the bins defined by `rmin`, `rmax` and `dr`. This 
+        parameter is ignored if pairpotential is a callable (function)
+    n_ins : int, optional
+        the number of test-particles to insert into each item in `coordinates`.
+        The default is 1000.
+    interpolate : bool, optional
+        whether to use linear interpolation for calculating the interaction of 
+        two particles using the values in `pairpotential`. The default is True.
+        If False, the nearest bin value is used. This parameter is ignored if 
+        pairpotential is a callable (function).
+    avoid_boundary : bool, optional
+        if True, all test-particles are inserted at least `rmax` away from any 
+        of the surfaces defined in `boundary` to avoid effects of the finite
+        volume of the bounding box. The default is False, which uses an 
+        analytical correction factor for missing volume of test-particles near 
+        the boundaries.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. Note: this is
+        ignored when `periodic_boundary=True`. The default is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    pair_correlation : numpy.array
+        values for the rdf / pair correlation function in each bin
+    counter : numpy.array
+        number of pair counts that contributed to the (mean) values in each bin
     """
     #create bin edges and bin centres for r
     coordinates = _check_coordinate_input(coordinates)
@@ -2758,20 +3023,33 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
         raise ValueError('rmax cannot be larger than 2 times the bounding '
                          f'circle radius, use `rmax<{2*boundary[:,3]}`')
 
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if pairpotential_binedges is None:
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = \
+            (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        #convert bool values of interpolate to nearest or linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #initialize arrays to store values
     counter = np.zeros(nr)
@@ -2869,13 +3147,87 @@ def _rdf_insertion_binned_3d_sphere(coordinates,pairpotential,rmin=0,rmax=10,
     return rvals,pair_correlation,counter
     
 def _rdf_insertion_binned_3d_custom(coordinates,pairpotential,boundary_func,
-        testparticle_func,rmin=0,rmax=10,dr=None,boundary=None,
-        pairpotential_binedges=None,n_ins=1000,interpolate=True,ins_coords=None,
-        insert_grid=False,avoid_coordinates=False,neighbors_upper_bound=None,
-        workers=1):
+        boundary,testparticle_func,rmin=0,rmax=10,dr=None,
+        pairpotential_binedges=None,n_ins=1000,interpolate=True,
+        avoid_coordinates=False,neighbors_upper_bound=None,workers=1):
+    """not intended to be called directly, see top-level `rdf_dist_hist_3d`
+    function. This function calculates the rdf from insertion of test-particles
+    using boundaries and corrections supplied via arguments so that custom 
+    boundary geometries can be corrected for, as well as for a list of datasets
+    with different boundary coditions between them, averaged over bins of width
+    dr, and based on the pairwise interaction potential u(r) (in units of kT).
+    
+    Parameters
+    ----------
+    coordinates : numpy.array or list-like of numpy.array
+        list of sets of coordinates, where each item along the 0th dimension is
+        a N*3 numpy.array of particle coordinates, where each array is an 
+        independent set of coordinates (e.g. one z-stack, a time step from a 
+        video, etc.), with each element of the array of form  `[z,y,x]`. Each 
+        set of coordinates is not required to have the same number of particles
+        but must have the same particle density. When no boundaries or a single
+        boundary is given, it is assumed all coordinate sets share these same
+        boundaries.
+    pairpotential : iterable
+        list of values for the pairwise interaction potential. Must have length
+        of `len(pairpotential_binedges)-1` and be in units of thermal energy kT
+    boundaryfunc : callable or list thereof
+        function to correct for finite boundary conditions. Must take three 
+        arguments: a numpy array of bin edges, an N×3 numpy array of 
+        coordinates and a boundary as specified in `boundary`, and return an 
+        N × `len(bin edges)-1` numpy array with a value between 0 and 1 
+        specifying the fraction of the volume of each spherical shell which is 
+        within the boundary. See e.g. `_sphere_shell_vol_frac_in_cuboid`.
+    boundary : tuple or list thereof
+        boundary specification as required for boundaryfunc.
+    testparticle_func : callable or list thereof
+        function that randomly generates testparticles within the boundary. 
+        Must take 2 arguments, resp. the boundary and n_ins, or 4 argumants, 
+        resp. the boundaries, coordinates, minimum distance and n_ins when
+        `avoid_coordinates=True`. See e.g. `_rand_coord_in_box` or 
+        `_rand_coord_at_dist`.
+    rmin : float, optional
+        lower cut-off for the pairwise distance. The default is 0.
+    rmax : float
+        cut-off radius for the pairwise distance (right edge of last bin).
+    dr : float
+        bin width of the pairwise distance bins.
+    boundary : TYPE, optional
+        DESCRIPTION. The default is None.
+    pairpotential_binedges : iterable, optional
+        bin edges corresponding to the values in `pairpotential. The default 
+        is None, which uses the bins defined by `rmin`, `rmax` and `dr`.
+    n_ins : int, optional
+        the number of test-particles to insert into each item in `coordinates`.
+        The default is 1000.
+    interpolate : bool, optional
+        whether to use linear interpolation for calculating the interaction of 
+        two particles using the values in `pairpotential`. The default is True.
+        If False, the nearest bin value is used.
+    avoid_coordinates : bool, optional
+        whether to insert test-particles at least `rmin` away from the center 
+        of any of the 'real' coordinates in `coordinates`. The default is 
+        False.
+    neighbors_upper_bound : int, optional
+        upper limit on the number of neighbors expected within rmax from a 
+        particle. Useful for datasets with dimensions much larger than rmax.
+        Only relevant for the case where `handle_edge=True`. The default is 
+        None, which takes the number of particles in the stack.
+    workers : int, optional
+        number of workers to use for parallel processing during the neighbour
+        detection step. If -1 is given all CPU threads are used. The default 
+        is 1.
+
+    Returns
+    -------
+    rvals : numpy.array
+        bin-edges of the radial distribution function.
+    pair_correlation : numpy.array
+        values for the rdf / pair correlation function in each bin
+    counter : numpy.array
+        number of pair counts that contributed to the (mean) values in each bin
     """
-    to be written
-    """
+
     _check_coordinate_input(coordinates)
     
     #create bin edges and bin centres for r
@@ -2917,20 +3269,33 @@ def _rdf_insertion_binned_3d_custom(coordinates,pairpotential,boundary_func,
         raise ValueError('lengths of `testparticle_func` and `coordinates` '
                          'must match')
     
-    #bin edges and centres for pairpotential
-    if type(pairpotential_binedges) == type(None):
-        pairpotential_binedges = rvals
-    pairpotential_bincenter = (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
-    
     #init function that returns energy from list of pairwise distances
-    if interpolate:#linearly interpolate pair potential between points
-        pot_fun = lambda dist: np.interp(dist,pairpotential_bincenter,
-                                         pairpotential)
-    else:#get pair potential from nearest bin (round r to bincenter)
-        from scipy.interpolate import interp1d    
-        pot_fun = interp1d(pairpotential_bincenter,pairpotential,
-                           kind='nearest',bounds_error=False,
-                           fill_value='extrapolate')
+    #if function is given, use that
+    if callable(pairpotential):
+        pot_fun = pairpotential
+    #otherwise use nearest or linearly interpolate
+    else:
+        #bin edges and centres for pairpotential
+        if pairpotential_binedges is None:
+            pairpotential_binedges = rvals
+        pairpotential_bincenter = \
+            (pairpotential_binedges[1:]+pairpotential_binedges[:-1])/2
+        
+        #convert bool values of interpolate to nearest or linear
+        if type(interpolate)==bool:
+            if interpolate:
+                interpolate='linear'
+            else:
+                interpolate='nearest'
+
+        from scipy.interpolate import interp1d   
+        pot_fun = interp1d(
+            pairpotential_bincenter,
+            pairpotential,
+            kind=interpolate,
+            bounds_error=False,
+            fill_value='extrapolate'
+        )
     
     #initialize arrays to store values
     counter = np.zeros(nr)

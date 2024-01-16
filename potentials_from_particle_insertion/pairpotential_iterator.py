@@ -41,11 +41,10 @@ from .distribution_functions import (
 def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
                   rmax=10,dr=None,convergence_tol=1e-5,max_iterations=100,
                   zero_clip=1e-20,regulate=False,**kwargs):
-    """
-    Run the algorithm to solve for the pairwise potential that most accurately
-    reproduces the radial distribution function using test-particle insertion,
-    as described in ref. [1]. 
-
+    """Run the algorithm to solve for the pairwise potential that most 
+    accurately reproduces the radial distribution function using test-particle
+    insertion, based on the ideas in ref. [1].
+    
     Parameters
     ----------
     coordinates : list-like of numpy.array
@@ -60,9 +59,6 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     pair_correlation_func : list of float
         bin values for the true pair correlation function that the algorithm 
         will try to match iteratively.
-    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
-        positions of the walls that define the bounding box of the coordinates.
-        Number of dimensions must match coordinates.
     initial_guess : list of float, optional
         Initial guess for the particle potential on the 0th iteration. The 
         default is None which gives 0 in each bin.
@@ -202,14 +198,13 @@ def run_iteration(coordinates,pair_correlation_func,initial_guess=None,rmin=0,
     return chi_squared,pairpotential,paircorrelation,counters
 
 def run_iterator_fitfunction(coordinates,pair_correlation_func,potential_func,
-                             initial_guess=None,fit_bounds=None,
-                             rmin=0,rmax=20,dr=None,convergence_tol=1e-5,
-                             max_iterations=100,max_func_evals=100,
-                             zero_clip=1e-20,**kwargs):
-    """
-    Run the algorithm to solve for the pairwise potential that most accurately
-    reproduces the radial distribution function using test-particle insertion,
-    as described in ref. [1]. 
+        initial_guess=None,fit_bounds=None,rmin=0,rmax=20,dr=None,
+        convergence_tol=1e-5,max_iterations=100,max_func_evals=100,
+        zero_clip=1e-20,**kwargs):
+    """Run the algorithm to solve for the pairwise potential that most 
+    accurately reproduces the radial distribution function using test-particle
+    insertion, using a fit function of known form instead of a generalized
+    binned potential based on scipy.optimize.curve_fit.
 
     Parameters
     ----------
@@ -225,12 +220,17 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,potential_func,
     pair_correlation_func : list of float
         bin values for the true pair correlation function that the algorithm 
         will try to match iteratively.
-    boundary : array-like of form `([(zmin,zmax),](ymin,ymax),(xmin,xmax))`
-        positions of the walls that define the bounding box of the coordinates.
-        Number of dimensions must match coordinates.
-    initial_guess : list of float, optional
-        Initial guess for the particle potential on the 0th iteration. The 
-        default is None which gives 0 in each bin.
+    potential_func : callable
+        fit funtion to use, where the first argument is the interparticle 
+        distance r, and any subsequent arguments are optimized for.
+    initial_guess : list, optional
+        values for the function parameters to use for the first iteration. 
+        The default is None.
+    fit_bounds : 2-tuple of list_like, optional
+        Each element of the tuple must be either an array with the length equal
+        to the number of parameters, or a scalar (in which case the bound is 
+        taken to be the same for all parameters). Use np.inf with an 
+        appropriate sign to disable bounds on all or some parameters.
     rmin : float, optional
         left edge of the smallest bin in interparticle distance r to consider.
         The default is 0.
@@ -245,13 +245,12 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,potential_func,
     max_iterations : int, optional
         Maximum number of iterations after which the algorithm is ended. The
         default is 100.
+    max_func_evals : int, optional
+        Maximum number of times the TPI function is evaluated. The default is 
+        100.
     zero_clip : float, optional
         values below the value of zero-clip are set to this value to avoid
         devision by zero errors. The default is `1e-20`.
-    regulate : bool, optional
-        if True, use regularization to more gently nudge towards the input g(r)
-        at the cost of slower convergence. Experimental option. The default is
-        `False`.
     **kwargs : key=value
         Additional keyword arguments are passed on to `rdf_insertion_binned_2d`
         or `rdf_insertion_binned_3d`
@@ -261,23 +260,21 @@ def run_iterator_fitfunction(coordinates,pair_correlation_func,potential_func,
     χ² : list of float
         summed squared error in the pair correlation function for each 
         iteration
-    pairpotential : list of list of float
-        the values for the pair potential in each bin for each iteration
+    pairpotential : list of callable
+        potential functions giving the potential for each iteraction
+    fit_params : list of list of float
+        the values for the function parameters in each iteration
     paircorrelation : list of list of float
         the values for the pair correlation function from test-particle
         insertion for each iteration
-    
-    References
-    ----------
-    [1] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). Model-
-    Free Measurement of the Pair Potential in Colloidal Fluids Using Optical 
-    Microscopy. Physical Review Letters, 123(9), 098002. 
-    https://doi.org/10.1103/PhysRevLett.123.098002
-    
+    counts : list of list of int
+        number of pair counts contributing to each bin in each iteration
+
     See also
     --------
     rdf_insertion_binned_2d : 2D routine for g(r) from test-particle insertion
     rdf_insertion_binned_3d : 3D routine for g(r) from test-particle insertion
+
     """
     
     #create values for bin edges and centres of r
