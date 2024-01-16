@@ -1,31 +1,8 @@
 """
--------------------------------------------------------------------------------
-
 Copyright (c) 2024 Maarten Bransen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
--------------------------------------------------------------------------------
 """
 
 #imports
-
 from matplotlib import pyplot as plt
 import numpy as np
 from potentials_from_particle_insertion import run_iterator_fitfunction,rdf_dist_hist_3d
@@ -51,7 +28,6 @@ coords = [_rand_coord_in_box(boundary,n=n) for _ in range(m)]
 #simple fit function
 def fitfun(r,a,b):
     res = a*r+b
-    res[r>3] = 0
     res[r<0] = np.inf
     return res
 
