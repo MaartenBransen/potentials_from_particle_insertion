@@ -6,7 +6,7 @@ Python package with a set of functions for calculating the g(r) using the Widom 
 The codes for this package were developed as part of the work in reference [1], where the iterative use of test-particle insertion to solve for the pair potential was based on [2] with correction for periodic or finite boundary conditions based on equations described in [3,4].
 
 ### References
-[1] Bransen, M. (2024). Measuring interactions between colloidal (nano)particles. PhD thesis, Utrecht University.
+[1] Bransen, M. (2024). [Measuring interactions between colloidal (nano)particles](https://doi.org/10.33540/2252). PhD thesis, Utrecht University.
 
 [2] Stones, A. E., Dullens, R. P. A., & Aarts, D. G. A. L. (2019). [Model-Free Measurement of the Pair Potential in Colloidal Fluids Using Optical Microscopy](https://doi.org/10.1103/PhysRevLett.123.098002). Physical Review Letters, 123(9), 098002. 
 
