@@ -37,8 +37,8 @@ try:
     import numba as nb
     _numba_available = True
 except ImportError:
-    warn("numba not detected, falling back to pure python. Install numba for "
-         "a performance increase.")
+    warn("numba not detected, falling back to pure python. Install numba for "\
+         +"a performance increase.")
     _numba_available = False
 
 #internal imports
