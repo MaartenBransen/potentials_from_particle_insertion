@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>potentials_from_particle_insertion.multicomponent API documentation</title>
+<meta name="description" content="This file contains codes for multicomponent compatible versions of functions,
+i.e. for more than one &#39;type&#39; of particle …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>potentials_from_particle_insertion.multicomponent</code></h1>
+</header>
+<section id="section-intro">
+<p>This file contains codes for multicomponent compatible versions of functions,
+i.e. for more than one 'type' of particle.</p>
+<hr>
+<p>Copyright (c) 2024 Maarten Bransen</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
+<hr>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="potentials_from_particle_insertion.multicomponent.rdf_dist_hist_2d"><code class="name flex">
+<span>def <span class="ident">rdf_dist_hist_2d</span></span>(<span>coordinates, handle_edge='rectangle', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>calculates g(r) via a 'conventional' distance histogram method for a
+number of multi-component 2D coordinate sets.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>(list-like of) list-like</code> of <code>numpy.ndarray</code> of <code>floats</code></dt>
+<dd>
+<p>list-like where each item along the 0th dimension is an N×2
+numpy.ndarray of particle coordinates of one of the components, with
+each row specifying a particle position in the form [<code>y</code>,<code>x</code>].
+Alternatively, a list-like of the above may be given where each item is
+an independent set of coordinate components (e.g. a time step from a
+video), in which case every set must have the same number of components
+but is not required to have the same number of particles and is assumed
+to share the same boundaries when no boundaries or only a single set of
+boundaries are given.</p>
+<p>For example, for a binary (two-component) system, <code>coordinates</code> would
+be a list containing two numpy.ndarrays in case of a single dataset, or
+a list with M lists each containing 2 arrays in case of M independent
+datasets.</p>
+</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower bound for the pairwise distance, left edge of 0th bin. The
+default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>upper bound for the pairwise distance, right edge of last bin. The
+default is 10.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>bin width for the pairwise distance bins. The default is (rmax-rmin)/20</dd>
+<dt><strong><code>handle_edge</code></strong> :&ensp;<code>one</code> of <code>['none','rectangle','periodic rectangle']</code>, optional</dt>
+<dd>
+<p>specifies how to correct for edge effects in the radial distribution
+function. These edge effects occur due to particles closer than <code>rmax</code>
+to any of the boundaries missing part of their neighbour shells in the
+dataset. The following options for correcting for this are available:</p>
+<ul>
+<li><code>'none'</code> or <code>None</code> or <code>False</code> (all equivalent): do not correct
+for edge effects at all. Note that in order to calculate the
+particle density, cuboidal boundaries are assumed even when
+<code>boundary</code> is not specified. This can be overridden by explicitely
+giving the particle density using the <code>density</code> parameter.</li>
+<li><code>'rectangle'</code>: correct for the missing volume in a square or
+rectangular boundary.</li>
+<li><code>'periodic rectangle'</code>: like <code>'rectangle'</code>, except in periodic
+boundary conditions (i.e. one side wraps around to the other),
+based on ref [1].</li>
+</ul>
+<p>The default is 'rectangle'.</p>
+</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array-like</code>, optional</dt>
+<dd>
+<p>positions of the walls that define the bounding box of the coordinates.
+The format must be given as <code>((ymin,ymax),(xmin,xmax))</code> when
+<code>handle_edge</code> is <code>'none'</code>, <code>'rectangle'</code> or <code>'periodic rectangle'</code>. All
+components must share the same boundary.</p>
+<p>If all coordinate sets share the same boundary, a single such boundary
+can be given, otherwise a list of such array-likes of the same length
+as coordinates can be given for specifying boundaries of each set in
+<code>coordinates</code> separately. The default is <code>None</code> which determines the
+smallest set of boundaries encompassing a set of coordinates.</p>
+</dd>
+<dt><strong><code>density</code></strong> :&ensp;<code>list</code> of <code>float</code>, optional</dt>
+<dd>number density of particles in the box for each of the components to
+use for normalizing the g(r) values. The default is the average density
+based on <code>coordinates</code> and <code>boundary</code>.</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>list</code> of <code>tuple</code> of <code>int</code></dt>
+<dd>list of different combinations of the two components to calculate the
+g(r) for, where the first element is the integer index of the component
+to use for the central reference particles and the second is the index
+of the component to bincount as neighbouring particles around the
+reference particles. The default is all possible combinations of
+n components without swapping order, i.e. (1,0) but not (0,1).</dd>
+<dt><strong><code>quiet</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, no output is printed to the terminal by this function call.
+The default is False.</dd>
+<dt><strong><code>neighbors_upper_bound</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>upper limit on the number of neighbors expected within rmax from a
+particle. Useful for reducing memory consumption in datasets with
+dimensions much larger than rmax. The default is None, which takes the
+total number of particles in the coordinate set as upper limit.</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of workers to use for parallel processing during the neighbour
+detection step. If -1 is given all CPU threads are used. Note: this is
+ignored when <code>handle_edge='periodic rectangle'</code>. The default is 1.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>rvals</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>bin-edges of the radial distribution function.</dd>
+<dt><strong><code>bincounts</code></strong> :&ensp;<code>list</code> of <code>numpy.array</code></dt>
+<dd>array of values for the bins of the radial distribution function for
+each item in <code>combinations</code> (in that order)</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>tuple:</code></dt>
+<dd>pairs of indices in <code>coordinates</code> defining the order of the different
+combinations of components, so <code>((0,0), (1,0))</code> means the first item in
+<code>bincounts</code> is the rdf of the first component in <code>coordinates</code> with
+itself, while the second index in bincouts gives the rdf with shells
+of the first component around the second central reference particles of
+the second component.</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p></div>
+</dd>
+<dt id="potentials_from_particle_insertion.multicomponent.rdf_dist_hist_3d"><code class="name flex">
+<span>def <span class="ident">rdf_dist_hist_3d</span></span>(<span>coordinates, handle_edge='cuboid', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>calculates g(r) via a 'conventional' distance histogram method for a
+number of multi-component 3D coordinate sets.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>(list-like of) list-like</code> of <code>numpy.ndarray</code> of <code>floats</code></dt>
+<dd>
+<p>list-like where each item along the 0th dimension is an N×3
+numpy.ndarray of particle coordinates of one of the components, with
+each row specifying a particle position in the form [<code>z</code>,<code>y</code>,<code>x</code>].
+Alternatively, a list-like of the above may be given where each item is
+an independent set of coordinate components (e.g. a time step from a
+series of z-stacks), in which case every set must have the same number
+of components but is not required to have the same number of particles
+and is assumed to share the same boundaries when no boundaries or only
+a single set of boundaries are given.</p>
+<p>For example, for a binary (two-component) system, <code>coordinates</code> would
+be a list containing two numpy.ndarrays in case of a single dataset, or
+a list with M lists each containing 2 arrays in case of M independent
+datasets.</p>
+</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower bound for the pairwise distance, left edge of 0th bin. The
+default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>upper bound for the pairwise distance, right edge of last bin. The
+default is 10.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>bin width for the pairwise distance bins. The default is (rmax-rmin)/20</dd>
+<dt><strong><code>handle_edge</code></strong> :&ensp;<code>one</code> of <code>['none','cuboid','periodic cuboid']</code>, optional</dt>
+<dd>
+<p>specifies how to correct for edge effects in the radial distribution
+function. These edge effects occur due to particles closer than <code>rmax</code>
+to any of the boundaries missing part of their neighbour shells in the
+dataset. The following options for correcting for this are available:</p>
+<ul>
+<li><code>'none'</code> or <code>None</code> or <code>False</code> (all equivalent): do not correct
+for edge effects at all. Note that in order to calculate the
+particle density, cuboidal boundaries are assumed even when
+<code>boundary</code> is not specified. This can be overridden by explicitely
+giving the particle density using <code>density</code>.</li>
+<li><code>'cuboid'</code>: correct for the missing volume in cuboidal boundary
+conditions, e.g. a 3D rectangular box with right angles. Based on
+ref. [1]</li>
+<li><code>'periodic cuboid'</code>: like <code>'cuboid'</code>, except in periodic
+boundary conditions (i.e. one side wraps around to the other).
+Based on ref. [2].</li>
+</ul>
+<p>The default is 'cuboid'.</p>
+</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array-like</code>, optional</dt>
+<dd>
+<p>positions of the walls that define the bounding box of the coordinates.
+The format must be given as <code>((zmin,zmax),(ymin,ymax),(xmin,xmax))</code>
+when <code>handle_edge</code> is <code>'none'</code>, <code>'cuboid'</code> or <code>'periodic cuboid'</code>. All
+components must share the same boundary.</p>
+<p>If all coordinate sets share the same boundary a single such boundary
+can be given, otherwise a list of such array-likes of the same length
+as coordinates can be given for specifying boundaries of each set in
+<code>coordinates</code> separately. The default is <code>None</code> which determines the
+smallest set of boundaries encompassing a set of coordinates.</p>
+</dd>
+<dt><strong><code>density</code></strong> :&ensp;<code>list</code> of <code>float</code>, optional</dt>
+<dd>number density of particles in the box for each of the components to
+use for normalizing the g(r) values. The default is the average density
+based on <code>coordinates</code> and <code>boundary</code>.</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>list</code> of <code>tuple</code> of <code>int</code></dt>
+<dd>list of different combinations of the two components to calculate the
+g(r) for, where the first element is the integer index of the component
+to use for the central reference particles and the second is the index
+of the component to bincount as neighbouring particles around the
+reference particles. The default is all possible combinations of
+n components without swapping order, i.e. (1,0) but not (0,1).</dd>
+<dt><strong><code>quiet</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, no output is printed to the terminal by this function call.
+The default is False.</dd>
+<dt><strong><code>neighbors_upper_bound</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>upper limit on the number of neighbors expected within rmax from a
+particle. Useful for reducing memory consumption in datasets with
+dimensions much larger than rmax. The default is None, which takes the
+total number of particles in the coordinate set as upper limit.</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of workers to use for parallel processing during the neighbour
+detection step. If -1 is given all CPU threads are used. Note: this is
+ignored when <code>handle_edge='periodic cuboid'</code>. The default is 1.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>rvals</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>bin-edges of the radial distribution function.</dd>
+<dt><strong><code>bincounts</code></strong> :&ensp;<code>list</code> of <code>numpy.array</code></dt>
+<dd>array of values for the bins of the radial distribution function for
+each item in <code>combinations</code> (in that order)</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>tuple:</code></dt>
+<dd>pairs of indices in <code>coordinates</code> defining the order of the different
+combinations of components, so <code>((0,0), (1,0))</code> means the first item in
+<code>bincounts</code> is the rdf of the first component in <code>coordinates</code> with
+itself, while the second index in bincouts gives the rdf with shells
+of the first component around the second central reference particles of
+the second component.</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Kopera, B. A. F., &amp; Retsch, M. (2018). Computing the 3D Radial
+Distribution Function from Particle Positions: An Advanced Analytic
+Approach. Analytical Chemistry, 90(23), 13909–13914.
+<a href="https://doi.org/10.1021/acs.analchem.8b03157">https://doi.org/10.1021/acs.analchem.8b03157</a></p>
+<p>[2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p></div>
+</dd>
+<dt id="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d"><code class="name flex">
+<span>def <span class="ident">rdf_insertion_binned_2d</span></span>(<span>coordinates, pairpotential, handle_edge='rectangle', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate g(r) from insertion of test-particles into sets of existing
+2D coordinates, averaged over bins of width dr, and based on the pairwise
+interaction potential u(r) (in units of kT) for a number of multi-component
+2D coordinate sets.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>(list-like of) list-like</code> of <code>numpy.ndarray</code> of <code>floats</code></dt>
+<dd>
+<p>list-like where each item along the 0th dimension is an N×3
+numpy.ndarray of particle coordinates of one of the components, with
+each row specifying a particle position in the form [<code>z</code>,<code>y</code>,<code>x</code>].
+Alternatively, a list-like of the above may be given where each item is
+an independent set of coordinate components (e.g. a time step from a
+series of z-stacks), in which case every set must have the same number
+of components but is not required to have the same number of particles
+and is assumed to share the same boundaries when no boundaries or only
+a single set of boundaries are given.</p>
+<p>For example, for a binary (two-component) system, <code>coordinates</code> would
+be a list containing two numpy.ndarrays in case of a single dataset, or
+a list with M lists each containing 2 arrays in case of M independent
+datasets.</p>
+</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>iterable</code></dt>
+<dd>list of values for the pairwise interaction potential. Must have length
+of <code>len(pairpotential_binedges)-1</code> and be in units of thermal energy kT</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower bound for the pairwise distance, left edge of 0th bin. The
+default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>upper bound for the pairwise distance, right edge of last bin. The
+default is 10.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>bin width for the pairwise distance bins. The default is (rmax-rmin)/20</dd>
+<dt><strong><code>handle_edge</code></strong> :&ensp;<code>one</code> of <code>['none','rectangle','periodic rectangle','circle', (list of) callable]</code>, optional</dt>
+<dd>
+<p>specifies how to correct for edge effects in the radial distribution
+function. These edge effects occur due to particles closer than <code>rmax</code>
+to any of the boundaries missing part of their neighbour shells in the
+dataset. The following options for correcting for this are available:</p>
+<ul>
+<li><code>'rectangle'</code>: correct for the missing volume in a square or
+rectangular boundary.</li>
+<li><code>'periodic' rectangle'</code>: like <code>'rectangle'</code>, except in periodic
+boundary conditions (i.e. one side wraps around to the other),
+based on ref [1].</li>
+<li><code>'circle'</code>: correct for missing volume in a spherical boundary.</li>
+<li>a custom callable function (or list thereof) can be given to
+correct for arbitrary and/or mixed boundary conditions. This
+function must take three arguments: a numpy array of bin edges, an
+N×2 numpy array of coordinates and a boundary as specified in
+<code>boundary</code>, and return an N × <code>len(bin edges)-1</code> numpy array with
+a value between 0 and 1 specifying the fraction of the volume of
+each spherical shell that is within the boundary.</li>
+</ul>
+<p>The default is 'rectangle'.</p>
+</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array-like</code>, optional</dt>
+<dd>positions of the walls that define the bounding box of the coordinates,
+given as
+<code>((ymin,ymax),(xmin,xmax))</code> if all coordinate sets share the
+same boundary, or a list of such array-likes of the same length as
+<code>coordinates</code> for specifying boundaries of each set in <code>coordinates</code>
+separately. The default is the min and max values in the dataset along
+each dimension.</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>list</code> of <code>tuple</code> of <code>int</code></dt>
+<dd>list of different combinations of the two components to calculate the
+g(r) for, where the first element is the integer index of the component
+to use for the central reference particles and the second is the index
+of the component to bincount as neighbouring particles around the
+reference particles. The default is all possible combinations of
+n components without swapping order, i.e. (1,0) but not (0,1).</dd>
+<dt><strong><code>n_ins</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>the number of test-particles to insert into each item in <code>coordinates</code>.
+The default is 1000.</dd>
+<dt><strong><code>insert_grid</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Wheter to insert the coordinates on an evenly spaced regular grid. The
+default is False which inserts on uniformly distributed pseudorandom
+coordinates.</dd>
+<dt><strong><code>ins_coords</code></strong> :&ensp;<code>numpy.ndarray</code>, optional</dt>
+<dd>set of insertion coordinates, overrides <code>n_ins</code>. The default is None.</dd>
+<dt><strong><code>avoid_boundary</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, all test-particles are inserted at least <code>rmax</code> away from any
+of the surfaces defined in <code>boundary</code> to avoid effects of the finite
+volume of the bounding box. The default is False, which uses an
+analytical correction factor for missing volume of test-particles near
+the boundaries.</dd>
+<dt><strong><code>avoid_coordinates</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to insert test-particles at least <code>rmin</code> away from the center
+of any of the 'real' coordinates in <code>coordinates</code>. The default is
+False.</dd>
+<dt><strong><code>pairpotential_binedges</code></strong> :&ensp;<code>iterable</code>, optional</dt>
+<dd>bin edges corresponding to the values in `pairpotential. The default
+is None, which uses the bins defined by <code>rmin</code>, <code>rmax</code> and <code>dr</code>.</dd>
+<dt><strong><code>interpolate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to use linear interpolation for calculating the interaction of
+two particles using the values in <code>pairpotential</code>. The default is True.
+If False, the nearest bin value is used.</dd>
+<dt><strong><code>neighbors_upper_bound</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>upper limit on the number of neighbors expected within rmax from a
+particle. Useful for reducing memory consumption in datasets with
+dimensions much larger than rmax. The default is None, which takes the
+total number of particles in the coordinate set as upper limit.</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of workers to use for parallel processing during the neighbour
+detection step. If -1 is given all CPU threads are used. Note: this is
+ignored when <code>handle_edge='periodic rectangle'</code>. The default is 1.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>rvals</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>bin-edges of the radial distribution function.</dd>
+<dt><strong><code>pair_correlation</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>values for the rdf / pair correlation function in each bin</dd>
+<dt><strong><code>counter</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>number of pair counts that contributed to the (mean) values in each bin</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>tuple:</code></dt>
+<dd>pairs of indices in <code>coordinates</code> defining the order of the different
+combinations of components, so <code>((0,0), (1,0))</code> means the first item in
+<code>bincounts</code> is the rdf of the first component in <code>coordinates</code> with
+itself, while the second index in bincouts gives the rdf with shells
+of the first component around the second central reference particles of
+the second component.</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p></div>
+</dd>
+<dt id="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d"><code class="name flex">
+<span>def <span class="ident">rdf_insertion_binned_3d</span></span>(<span>coordinates, pairpotential, handle_edge='cuboid', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate g(r) from insertion of test-particles into sets of existing
+3D coordinates, averaged over bins of width dr, and based on the pairwise
+interaction potential u(r) (in units of kT) for a number of multi-component
+3D coordinate sets.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>list-like</code> of <code>numpy.array</code></dt>
+<dd>List of sets of coordinates, where each item along the 0th dimension is
+a n*3 numpy.array of particle coordinates, where each array is an
+independent set of coordinates (e.g. one z-stack, a time step from a
+video, etc.), with each element of the array of form
+<code>[z,y,x]</code>. Each
+set of coordinates is not required to have the same number of particles
+but all coordinates must be within the bounding box(es) given in
+<code>boundary</code>.</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>iterable</code> or <code>callable</code></dt>
+<dd>list of values for the pairwise interaction potential. Must have length
+of <code>len(pairpotential_binedges)-1</code> and be in units of thermal energy
+kT. Alternatively, any callable (function) which takes only a numpy
+array of pairwise distances and returns the pairpotential can be given.</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>lower bound for the pairwise distance, left edge of 0th bin. The
+default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code></dt>
+<dd>cut-off radius for the pairwise distance (right edge of last bin).</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code></dt>
+<dd>bin width of the pairwise distance bins.</dd>
+<dt><strong><code>handle_edge</code></strong> :&ensp;<code>one</code> of <code>['none','cuboid','periodic cuboid','sphere', (list of) callable]</code>, optional</dt>
+<dd>
+<p>specifies how to correct for edge effects in the radial distribution
+function. These edge effects occur due to particles closer than <code>rmax</code>
+to any of the boundaries missing part of their neighbour shells in the
+dataset. The following options for correcting for this are available:</p>
+<ul>
+<li><code>'none'</code> or <code>None</code> or <code>False</code> (all equivalent): do not correct
+for edge effects at all. Note that in order to calculate the
+particle density, cuboidal boundaries are assumed even when
+<code>boundary</code> is not specified. This can be overridden by explicitely
+giving the particle density using <code>density</code>.</li>
+<li><code>'cuboid'</code>: correct for the missing volume in cuboidal boundary
+conditions, e.g. a 3D rectangular box with right angles. Based on
+ref. [1]</li>
+<li><code>'periodic' cuboid'</code>: like <code>'cuboid'</code>, except in periodic
+boundary conditions (i.e. one side wraps around to the other).
+Based on ref. [2].</li>
+<li><code>'sphere'</code>: correct for missing volume in spherical boundary
+conditions</li>
+<li>a custom callable function (or list thereof) can be given to
+correct for arbitrary and/or mixed boundary conditions. This
+function must take three arguments: a numpy array of bin edges, an
+N×3 numpy array of coordinates and a boundary as specified in
+<code>boundary</code>, and return an N × <code>len(bin edges)-1</code> numpy array with
+a value between 0 and 1 specifying the fraction of the volume of
+each spherical shell that is within the boundary.</li>
+</ul>
+<p>The default is 'cuboid'.</p>
+</dd>
+<dt><strong><code>boundary</code></strong> :&ensp;<code>array-like</code> of <code>form </code>((zmin,zmax),(ymin,ymax),(xmin,xmax))``</dt>
+<dd>Positions of the walls that define the bounding box of the coordinates,
+given as a single array-like for a shared set of boundaries for all
+coordinates, or an list-like of such array-likes with the same length
+as <code>coordinates</code> for a separate set of boundaries for each.</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>list</code> of <code>tuple</code> of <code>int</code></dt>
+<dd>list of different combinations of the two components to calculate the
+g(r) for, where the first element is the integer index of the component
+to use for the central reference particles and the second is the index
+of the component to bincount as neighbouring particles around the
+reference particles. The default is all possible combinations of
+n components without swapping order, i.e. (1,0) but not (0,1).</dd>
+<dt><strong><code>n_ins</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>the number of test-particles to insert into each item in <code>coordinates</code>.
+The default is 1000.</dd>
+<dt><strong><code>insert_grid</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Wheter to insert the coordinates on an evenly spaced regular grid. The
+default is False which inserts on uniformly distributed pseudorandom
+coordinates.</dd>
+<dt><strong><code>ins_coords</code></strong> :&ensp;<code>numpy.ndarray</code>, optional</dt>
+<dd>set of insertion coordinates, overrides <code>n_ins</code>. The default is None.</dd>
+<dt><strong><code>avoid_boundary</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, all test-particles are inserted at least <code>rmax</code> away from any
+of the surfaces defined in <code>boundary</code> to avoid effects of the finite
+volume of the bounding box. The default is False, which uses an
+analytical correction factor for missing volume of test-particles near
+the boundaries.</dd>
+<dt><strong><code>avoid_coordinates</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to insert test-particles at least <code>rmin</code> away from the center
+of any of the 'real' coordinates in <code>coordinates</code>. The default is
+False.</dd>
+<dt><strong><code>pairpotential_binedges</code></strong> :&ensp;<code>iterable</code>, optional</dt>
+<dd>bin edges corresponding to the values in `pairpotential. The default
+is None, which uses the bins defined by <code>rmin</code>, <code>rmax</code> and <code>dr</code>.</dd>
+<dt><strong><code>interpolate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>whether to use linear interpolation for calculating the interaction of
+two particles using the values in <code>pairpotential</code>. The default is True.
+If False, the nearest bin value is used.</dd>
+<dt><strong><code>neighbors_upper_bound</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>upper limit on the number of neighbors expected within rmax from a
+particle. Useful for reducing memory consumption in datasets with
+dimensions much larger than rmax. The default is None, which takes the
+total number of particles in the coordinate set as upper limit.</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>number of workers to use for parallel processing during the neighbour
+detection step. If -1 is given all CPU threads are used. Note: this is
+ignored when <code>handle_edge='periodic rectangle'</code>. The default is 1.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>rvals</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>bin-edges of the radial distribution function.</dd>
+<dt><strong><code>pair_correlation</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>values for the rdf / pair correlation function in each bin</dd>
+<dt><strong><code>counter</code></strong> :&ensp;<code>numpy.array</code></dt>
+<dd>number of pair counts that contributed to the (mean) values in each bin</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>tuple:</code></dt>
+<dd>pairs of indices in <code>coordinates</code> defining the order of the different
+combinations of components, so <code>((0,0), (1,0))</code> means the first item in
+<code>bincounts</code> is the rdf of the first component in <code>coordinates</code> with
+itself, while the second index in bincouts gives the rdf with shells
+of the first component around the second central reference particles of
+the second component.</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Kopera, B. A. F., &amp; Retsch, M. (2018). Computing the 3D Radial
+Distribution Function from Particle Positions: An Advanced Analytic
+Approach. Analytical Chemistry, 90(23), 13909–13914.
+<a href="https://doi.org/10.1021/acs.analchem.8b03157">https://doi.org/10.1021/acs.analchem.8b03157</a></p>
+<p>[2] Markus Seserno (2014). How to calculate a three-dimensional g(r) under
+periodic boundary conditions.
+<a href="https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf">https://www.cmu.edu/biolphys/deserno/pdf/gr_periodic.pdf</a></p></div>
+</dd>
+<dt id="potentials_from_particle_insertion.multicomponent.run_iteration"><code class="name flex">
+<span>def <span class="ident">run_iteration</span></span>(<span>coordinates,<br>pair_correlation_func,<br>rmin=0,<br>rmax=10,<br>dr=None,<br>initial_guess=None,<br>max_iterations=100,<br>convergence_tol=1e-05,<br>zero_clip=1e-20,<br>regulate=False,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the algorithm to solve for the pairwise potential that most accurately
+reproduces the radial distribution function using test-particle insertion,
+as described in ref. [1].</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>coordinates</code></strong> :&ensp;<code>list-like</code> of <code>numpy.array</code></dt>
+<dd>List of sets of coordinates, where each item along the 0th dimension is
+a n*3 numpy.array of particle coordinates, where each array is an
+independent set of coordinates (e.g. one z-stack, a time step from a
+video, etc.), with each element of the array of form
+<code>[z,y,x]</code> or
+<code>[y,x]</code> in case of 2D data. Each set of coordinates is not required to
+have the same number of particles but all stacks must share the same
+bounding box as given by <code>boundary</code>, and all coordinates must be within
+this bounding box.</dd>
+<dt><strong><code>pair_correlation_func</code></strong> :&ensp;<code>list</code> of <code>float</code></dt>
+<dd>bin values for the true pair correlation function that the algorithm
+will try to match iteratively.</dd>
+<dt><strong><code>rmin</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>left edge of the smallest bin in interparticle distance r to consider.
+The default is 0.</dd>
+<dt><strong><code>rmax</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Right edge of the largest bin in interparticle distance r to consider.
+The default is 20.</dd>
+<dt><strong><code>dr</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>Stepsize or bin width in interparticle distance r. The default is 0.5.</dd>
+<dt><strong><code>initial_guess</code></strong> :&ensp;<code>list</code> of <code>float</code>, optional</dt>
+<dd>Initial guess for the particle potential on the 0th iteration. The
+default is None which gives 0 in each bin.</dd>
+<dt><strong><code>max_iterations</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Maximum number of iterations after which the algorithm is ended. The
+default is 100.</dd>
+<dt><strong><code>convergence_tol</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>target value for χ², if it dips below this value the iteration is
+considered to be converged and ended. The default is <code>1e-5</code>.</dd>
+<dt><strong><code>zero_clip</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>values below the value of zero-clip are set to this value to avoid
+devision by zero errors. The default is <code>1e-20</code>.</dd>
+<dt><strong><code>regulate</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, use regularization to more gently nudge towards the input g(r)
+at the cost of slower convergence. Experimental option. The default is
+<code>False</code>.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>key=value</code></dt>
+<dd>Additional keyword arguments are passed on to <code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d">rdf_insertion_binned_2d()</a></code>
+or <code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d">rdf_insertion_binned_3d()</a></code></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>χ²</code></strong> :&ensp;<code>list</code> of <code>float</code></dt>
+<dd>summed squared error in the pair correlation function for each
+iteration</dd>
+<dt><strong><code>pairpotential</code></strong> :&ensp;<code>list</code> of <code>list</code> of <code>float</code></dt>
+<dd>the values for the pair potential in each bin for each iteration</dd>
+<dt><strong><code>paircorrelation</code></strong> :&ensp;<code>list</code> of <code>list</code> of <code>float</code></dt>
+<dd>the values for the pair correlation function from test-particle
+insertion for each iteration</dd>
+<dt><strong><code>counts</code></strong> :&ensp;<code>list</code> of <code>list</code> of <code>int</code></dt>
+<dd>number of pair counts contributing to each bin in each iteration</dd>
+<dt><strong><code>combinations</code></strong> :&ensp;<code>tuple:</code></dt>
+<dd>pairs of indices in <code>coordinates</code> defining the order of the different
+combinations of components, so <code>((0,0), (1,0))</code> means the first item in
+<code>bincounts</code> is the rdf of the first component in <code>coordinates</code> with
+itself, while the second index in bincouts gives the rdf with shells
+of the first component around the second central reference particles of
+the second component.</dd>
+</dl>
+<h2 id="references">References</h2>
+<p>[1] Stones, A. E., Dullens, R. P. A., &amp; Aarts, D. G. A. L. (2019). Model-
+Free Measurement of the Pair Potential in Colloidal Fluids Using Optical
+Microscopy. Physical Review Letters, 123(9), 098002.
+<a href="https://doi.org/10.1103/PhysRevLett.123.098002">https://doi.org/10.1103/PhysRevLett.123.098002</a></p>
+<h2 id="see-also">See Also</h2>
+<dl>
+<dt><code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d">rdf_insertion_binned_2d()</a></code></dt>
+<dd>2D routine for g(r) from test-particle insertion</dd>
+<dt><code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d">rdf_insertion_binned_3d()</a></code></dt>
+<dd>3D routine for g(r) from test-particle insertion</dd>
+</dl></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="potentials_from_particle_insertion" href="../index.html">potentials_from_particle_insertion</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="potentials_from_particle_insertion.multicomponent.rdf_dist_hist_2d" href="#potentials_from_particle_insertion.multicomponent.rdf_dist_hist_2d">rdf_dist_hist_2d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.multicomponent.rdf_dist_hist_3d" href="#potentials_from_particle_insertion.multicomponent.rdf_dist_hist_3d">rdf_dist_hist_3d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_2d">rdf_insertion_binned_2d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d" href="#potentials_from_particle_insertion.multicomponent.rdf_insertion_binned_3d">rdf_insertion_binned_3d</a></code></li>
+<li><code><a title="potentials_from_particle_insertion.multicomponent.run_iteration" href="#potentials_from_particle_insertion.multicomponent.run_iteration">run_iteration</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>
