@@ -236,7 +236,7 @@ def _coord_grid_in_box(boundary,n=1):
 
     """
     edge_lengths = boundary[:,1]-boundary[:,0]
-    n_per_dim = np.round(n**(1/3)*edge_lengths/np.product(edge_lengths)**(1/3)).astype(np.uint8)
+    n_per_dim = np.round(n**(1/3)*edge_lengths/np.prod(edge_lengths)**(1/3)).astype(np.uint8)
     n_per_dim[n_per_dim<1] = 1
     steps = [np.linspace(dmin,dmax,dn+1,endpoint=False)[1:] 
              for dmin,dmax,dn in zip(boundary[:,0],boundary[:,1],n_per_dim)]

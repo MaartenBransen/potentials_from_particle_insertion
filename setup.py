@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="potentials_from_particle_insertion",
-    version="1.0.0",
+    version="1.0.1",
     author="Maarten Bransen",
     license='MIT License',
     long_description=open('README.md').read(),

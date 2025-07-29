@@ -37,8 +37,8 @@ try:
     import numba as nb
     _numba_available = True
 except ImportError:
-    warn("numba not detected, falling back to pure python. Install numba for "
-         "a performance increase.")
+    warn("numba not detected, falling back to pure python. Install numba for "\
+         +"a performance increase.")
     _numba_available = False
 
 #internal imports
@@ -951,7 +951,7 @@ def _rdf_dist_hist_2d_rectangle(coordinates,rmin=0,rmax=10,dr=None,
     
     #set density to mean number density in dataset
     if not density:
-        vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
+        vol = np.prod(boundary[:,:,1]-boundary[:,:,0],axis=1)
         density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     
@@ -1468,7 +1468,7 @@ def _rdf_dist_hist_3d_cuboid(coordinates,rmin=0,rmax=10,dr=None,boundary=None,
     
     #set density to mean number density in dataset
     if not density:
-        vol = np.product(boundary[:,:,1]-boundary[:,:,0],axis=1)
+        vol = np.prod(boundary[:,:,1]-boundary[:,:,0],axis=1)
         density = np.mean([len(coords)/v for v,coords in zip(vol,coordinates)])
     
     #loop over all sets of coordinates
